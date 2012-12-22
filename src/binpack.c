@@ -6,8 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <unistd.h>
 
 //**********************
 // FUNCTION PROTOTYPES
@@ -116,51 +114,39 @@ char version[] = "0.01";
 // MAIN PROGRAM
 //********************************************************
 
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
-  opterr = 0;
-  int option;
-  int index;
   
-  if (argc != 1)
+  //Parse Command line options
+  if (argc == 2 || argc == 3)
   {
-    while ((option = getopt(argc, argv, "hvf:")) != -1)
+    if (strcmp(argv[1], "-f") == 0 || strcmp(argv[1], "--inputfile") == 0)
     {
-      switch(option)
+      if (argc == 3)
       {
-        case 'f':
-          filename = optarg;
-          break;
-        case 'v':
-          printf("Boxologic version %s\n", version);
-          return(0);
-        case 'h':
-          print_help();
-          return(0);
-        case '?':
-          if (optopt == 'f')
-          {
-            fprintf (stderr, "Option -%c requires an argument.\n\n", optopt);
-          }
-          else if (isprint(optopt))
-          {
-            fprintf(stderr, "Unknown option `-%c'.\n\n", optopt);
-          }
-          else
-          {
-            fprintf(stderr, "Unknown option character `\\x%x'.\n\n", optopt);
-            return(1);
-          }
-        default:
-          print_help();
-          exit(1);
+        filename = argv[2];
+      }
+      else
+      {
+        printf("A filename is required.\n\n");
+        print_help();
+        exit(1);
       }
     }
-    
-    for (index = optind; index < argc; index++)
+    else if (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "--version") == 0)
     {
-      printf ("Invalid argument %s\n", argv[index]);
-      return(1);
+      printf("Boxologic version %s\n", version);
+      return(0);
+    }
+    else if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)
+    {
+      print_help();
+      return(0);
+    }
+    else
+    {
+      print_help();
+      exit(1);
     }
   }
   else
