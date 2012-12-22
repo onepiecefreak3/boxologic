@@ -1029,44 +1029,44 @@ void volumecheck (void)
   packedvolume = packedvolume + boxlist[cboxi].vol;
   packednumbox++;
   if (packingbest)
-  { 
+  {
     graphunpackedout();
     outputboxlist();
   }
-  else if (packedvolume == totalvolume || packedvolume == totalboxvol) 
+  else if (packedvolume == totalvolume || packedvolume == totalboxvol)
   {
-    packing = 0; 
+    packing = 0;
     hundredpercent = 1;
-  } 
+  }
   return;
 }
 
 //*********************************************************************
-// DATA FOR THE VISUALIZATION PROGRAM IS WRITTEN TO THE 
+// DATA FOR THE VISUALIZATION PROGRAM IS WRITTEN TO THE
 // "VISUDAT" FILE AND THE LIST OF UNPACKED BOXES IS
 // MERGED TO THE END OF THE REPORT FILE
 //*********************************************************************
 
-void graphunpackedout(void) 
-{ 
+void graphunpackedout(void)
+{
   char n[5];
   if (!unpacked)
   {
-    itoa(boxlist[cboxi].cox, strcox, 10); 
-    itoa(boxlist[cboxi].coy, strcoy, 10); 
-    itoa(boxlist[cboxi].coz, strcoz, 10);
-    itoa(boxlist[cboxi].packx, strpackx, 10);
-    itoa(boxlist[cboxi].packy, strpacky, 10);
-    itoa(boxlist[cboxi].packz, strpackz, 10);
+    sprintf(strcox, "%d", boxlist[cboxi].cox);
+    sprintf(strcoy, "%d", boxlist[cboxi].coy);
+    sprintf(strcoz, "%d", boxlist[cboxi].coz);
+    sprintf(strpackx, "%d", boxlist[cboxi].packx);
+    sprintf(strpacky, "%d", boxlist[cboxi].packy);
+    sprintf(strpackz, "%d", boxlist[cboxi].packz);
   }
-  else 
+  else
   {
-    itoa(cboxi, n, 10); 
-    itoa(boxlist[cboxi].dim1, strpackx, 10); 
-    itoa(boxlist[cboxi].dim2, strpacky, 10);
-    itoa(boxlist[cboxi].dim3, strpackz, 10);
+    sprintf(n, "%d", cboxi);
+    sprintf(strpackx, "%d", boxlist[cboxi].dim1);
+    sprintf(strpacky, "%d", boxlist[cboxi].dim2);
+    sprintf(strpackz, "%d", boxlist[cboxi].dim3);
   }
-  if (!unpacked) 
+  if (!unpacked)
   {
     fprintf(gfp, "%5s%5s%5s%5s%5s%5s\n", strcox, strcoy, strcoz, strpackx, strpacky, strpackz);
   }
@@ -1077,7 +1077,7 @@ void graphunpackedout(void)
 }
 
 //*********************************************************************
-// TRANSFORMS THE FOUND COORDINATE SYSTEM TO THE ONE ENTERED 
+// TRANSFORMS THE FOUND COORDINATE SYSTEM TO THE ONE ENTERED
 // BY THE USER AND WRITES THEM TO THE REPORT FILE
 //*********************************************************************
 
@@ -1143,17 +1143,17 @@ void outputboxlist(void)
       break;
   }
   
-  itoa(cboxi, strx,10);
-  itoa(boxlist[cboxi].packst, strpackst, 10);
-  itoa(boxlist[cboxi].dim1, strdim1, 10);
-  itoa(boxlist[cboxi].dim2, strdim2, 10);
-  itoa(boxlist[cboxi].dim3, strdim3,10);
-  itoa(x, strcox, 10);
-  itoa(y, strcoy, 10);
-  itoa(z, strcoz, 10);
-  itoa(bx, strpackx, 10);
-  itoa(by, strpacky, 10);
-  itoa(bz, strpackz, 10);
+  sprintf(strx, "%d", cboxi);
+  sprintf(strpackst, "%d", boxlist[cboxi].packst);
+  sprintf(strdim1, "%d", boxlist[cboxi].dim1);
+  sprintf(strdim2, "%d", boxlist[cboxi].dim2);
+  sprintf(strdim3, "%d", boxlist[cboxi].dim3);
+  sprintf(strcox, "%d", x);
+  sprintf(strcoy, "%d", y);
+  sprintf(strcoz, "%d", z);
+  sprintf(strpackx, "%d", bx);
+  sprintf(strpacky, "%d", by);
+  sprintf(strpackz, "%d", bz);
   
   boxlist[cboxi].cox = x;
   boxlist[cboxi].coy = y;
@@ -1164,54 +1164,53 @@ void outputboxlist(void)
   fprintf(ofp, "%5s%5s%9s%9s%9s%9s%9s%9s%9s%9s%9s\n", strx, strpackst, strdim1, strdim2, strdim3, strcox, strcoy, strcoz, strpackx, strpacky, strpackz);
   return;
 }
-  
-  
+
+
 //*******************************************************************
-// USING THE PARAMETERS FOUND, PACKS THE BEST SOLUTION FOUND 
+// USING THE PARAMETERS FOUND, PACKS THE BEST SOLUTION FOUND
 // AND REPORS TO THE CONSOLE AND TO A TEXT FILE
 //*******************************************************************
 
 void report(void)
-{ 
-  quit = 0;
-  switch(bestvariant) 
-  { 
+{
+  switch(bestvariant)
+  {
     case 1:
       px = xx; py = yy; pz = zz;
-      break; 
+      break;
     case 2:
       px = zz; py = yy; pz = xx;
-      break; 
+      break;
     case 3:
       px = zz; py = xx; pz = yy;
-      break; 
+      break;
     case 4:
       px=yy; py=xx; pz = zz;
-      break; 
+      break;
     case 5:
       px = xx; py = zz; pz = yy;
-      break; 
+      break;
     case 6:
-      px = yy; py = zz; pz = xx; 
+      px = yy; py = zz; pz = xx;
       break;
   }
   packingbest = 1;
-  if ( (gfp = fopen(graphout,"w")) == NULL ) 
+  if ( (gfp = fopen(graphout,"w")) == NULL )
   {
-    printf("Cannot open file %s", filename);
+    printf("Cannot open file %s\n", filename);
     exit(1);
   }
   
-  itoa(px, strpx, 10);
-  itoa(py, strpy, 10);
-  itoa(pz, strpz, 10);
+  sprintf(strpx, "%d", px);
+  sprintf(strpy, "%d", py);
+  sprintf(strpz, "%d", pz);
   
-  fprintf(gfp,"%5s%5s%5s\n", strpx, strpy, strpz); 
+  fprintf(gfp,"%5s%5s%5s\n", strpx, strpy, strpz);
   strcat(filename, ".out");
   
-  if ( (ofp = fopen(filename,"w")) == NULL ) 
-  { 
-    printf("Cannot open file %s", filename);
+  if ( (ofp = fopen(filename,"w")) == NULL )
+  {
+    printf("Cannot open output file %s\n", filename);
     exit(1);
   }
   
