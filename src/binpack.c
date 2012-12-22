@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <malloc.h>
-#include <conio.h>
+#include <ctype.h>
+#include <unistd.h>
 
 //**********************
 // FUNCTION PROTOTYPES
@@ -28,6 +28,7 @@ void volumecheck (void);
 void graphunpackedout(void);
 void outputboxlist(void);
 void report(void);
+void print_help(void);
 
 //********************************************************
 // VARIABLE, CONSTANT AND STRUCTURE DECLARATIONS
@@ -37,8 +38,7 @@ char strpx[5], strpy[5], strpz[5];
 char strcox[5], strcoy[5], strcoz[5];
 char strpackx[5], strpacky[5], strpackz[5];
 
-char filename[12];
-char strtemp[]="";
+char *filename = NULL;
 char packing;
 char layerdone;
 char evened;
@@ -48,7 +48,6 @@ char packingbest;
 char hundredpercent;
 char graphout[]="visudat";
 char unpacked;
-char quit;
 
 short int boxx, boxy, boxz, boxi;
 short int bboxx, bboxy, bboxz, bboxi;
@@ -89,15 +88,15 @@ double percentageused;
 double percentagepackedbox;
 double elapsedtime;
 
-struct boxinfo { 
+struct boxinfo {
   char packst;
   short int dim1, dim2, dim3, n, cox, coy, coz, packx, packy, packz;
-  long int vol; 
+  long int vol;
 } boxlist[5000];
 
 struct layerlist{
   long int layereval;
-  short int layerdim; 
+  short int layerdim;
 } layers[1000];
 
 struct scrappad{
@@ -105,78 +104,111 @@ struct scrappad{
   short int cumx, cumz;
 };
 
-struct scrappad *scrapfirst, *scrapmemb, *smallestz, *trash; 
+struct scrappad *scrapfirst, *scrapmemb, *smallestz, *trash;
 
 time_t start, finish;
 
 FILE *ifp, *ofp, *gfp;
 
+char version[] = "0.01";
+
 //********************************************************
 // MAIN PROGRAM
 //********************************************************
 
-int main(int argc, char *argv[]) 
-{ 
-  if (argc == 1)
+int main(int argc, char **argv)
+{
+  opterr = 0;
+  int option;
+  int index;
+  
+  if (argc != 1)
   {
-    printf("(ASSUMED TO HAVE '.TXT' EXTENSION; UP TO 8 CHARACTERS LONG)\n");
-    printf ("PLEASE ENTER THE NAME OF THE INPUT FILE :"); 
-    scanf ("%s",filename);
+    while ((option = getopt(argc, argv, "hvf:")) != -1)
+    {
+      switch(option)
+      {
+        case 'f':
+          filename = optarg;
+          break;
+        case 'v':
+          printf("Boxologic version %s\n", version);
+          return(0);
+        case 'h':
+          print_help();
+          return(0);
+        case '?':
+          if (optopt == 'f')
+          {
+            fprintf (stderr, "Option -%c requires an argument.\n\n", optopt);
+          }
+          else if (isprint(optopt))
+          {
+            fprintf(stderr, "Unknown option `-%c'.\n\n", optopt);
+          }
+          else
+          {
+            fprintf(stderr, "Unknown option character `\\x%x'.\n\n", optopt);
+            return(1);
+          }
+        default:
+          print_help();
+          exit(1);
+      }
+    }
+    
+    for (index = optind; index < argc; index++)
+    {
+      printf ("Invalid argument %s\n", argv[index]);
+      return(1);
+    }
   }
-  else 
+  else
   {
-    printf("%s", argv[1]);
-    strcpy(filename, argv[1]);
-  } 
+    print_help();
+    exit(1);
+  }
   
   initialize();
   time(&start);
-  printf("\nPRESS Q TO QUIT AT ANYTIME AND WAIT\n\n"); 
   execiterations();
   time(&finish);
   report();
-  getch();
-  return 0;
+  return(0);
 }
 
 //********************************************************
 // PERFORMS INITIALIZATIONS
 //********************************************************
 
-void initialize(void) 
-{ 
-  if (filename == "")
-  {
-    printf("\nINVALID FILE NAME\n"); 
-    exit(1);
-  } 
+void initialize(void)
+{
   inputboxlist();
-  temp = 1.0; 
+  temp = 1.0;
   totalvolume = temp * xx * yy * zz;
   totalboxvol = 0.0;
   for (x=1; x <= tbn; x++) {
-    totalboxvol = totalboxvol + boxlist[x].vol; 
+    totalboxvol = totalboxvol + boxlist[x].vol;
   }
   
   scrapfirst = malloc(sizeof(struct scrappad));
-  
-  if ((*scrapfirst).pos == NULL) 
-  {
-    printf("Insufficient memory available\n"); 
-    exit(1);
-  } 
+//  TODO: Ask Ryan about this piece of logic
+//  if ((*scrapfirst).pos == NULL)
+//  {
+//    printf("Insufficient memory available\n");
+//    exit(1);
+//  }
   (*scrapfirst).pre = NULL;
   (*scrapfirst).pos = NULL;
-  bestvolume = 0.0; 
+  bestvolume = 0.0;
   packingbest = 0;
   hundredpercent = 0;
   itenum = 0;
-  quit=0;
 }
-         
-         
+
+
 //**********************************************************************
-// READS THE PALLET AND BOX SET DATA ENTERED BY THE USER FROM 
+// READS THE PALLET AND BOX SET DATA ENTERED BY THE USER FROM
 // THE INPUT FILE
 //**********************************************************************
 
@@ -185,12 +217,9 @@ void inputboxlist(void)
   short int n;
   char lbl[5], dim1[5], dim2[5], dim3[5], boxn[5], strxx[5], stryy[5], strzz[5];
   
-  strcpy(strtemp, filename);
-  strcat(strtemp, ".txt");
-  
-  if ( (ifp=fopen(strtemp,"r")) == NULL ) 
+  if ( (ifp=fopen(filename,"r")) == NULL )
   {
-    printf("Cannot open file %s", strtemp); 
+    printf("Cannot open file %s\n", filename);
     exit(1);
   }
   tbn = 1;
@@ -198,9 +227,9 @@ void inputboxlist(void)
   if ( fscanf(ifp,"%s %s %s",strxx, stryy, strzz) == EOF )
   {
     exit(1);
-  } 
+  }
   
-  xx = atoi(strxx); 
+  xx = atoi(strxx);
   yy = atoi(stryy);
   zz = atoi(strzz);
   
@@ -210,8 +239,8 @@ void inputboxlist(void)
     boxlist[tbn].dim2 = atoi(dim2);
     boxlist[tbn].dim3 = atoi(dim3);
     
-    boxlist[tbn].vol = boxlist[tbn].dim1 * boxlist[tbn].dim2 * boxlist[tbn].dim3; 
-    n = atoi(boxn); 
+    boxlist[tbn].vol = boxlist[tbn].dim1 * boxlist[tbn].dim2 * boxlist[tbn].dim3;
+    n = atoi(boxn);
     boxlist[tbn].n = n;
     
     while (--n)
@@ -219,40 +248,40 @@ void inputboxlist(void)
       boxlist[tbn+n] = boxlist[tbn];
     }
     tbn = tbn+atoi(boxn);
-  } 
+  }
   --tbn;
-  fclose(ifp); 
+  fclose(ifp);
   return;
 }
 
 //**********************************************************************
-// ITERATIONS ARE DONE AND PARAMETERS OF THE BEST SOLUTION ARE 
+// ITERATIONS ARE DONE AND PARAMETERS OF THE BEST SOLUTION ARE
 // FOUND
 //**********************************************************************
 
-void execiterations(void) 
+void execiterations(void)
 {
-  for (variant = 1; (variant <= 6) && !quit; variant++)
+  for (variant = 1; variant <= 6; variant++)
   {
     switch(variant)
-    { 
+    {
       case 1:
         px=xx; py=yy; pz=zz;
         break;
       case 2:
         px=zz; py=yy; pz=xx;
-        break; 
+        break;
       case 3:
         px=zz; py=xx; pz=yy;
-        break; 
+        break;
       case 4:
         px=yy; py=xx; pz=zz;
         break;
       case 5:
         px=xx; py=zz; pz=yy;
-        break; 
+        break;
       case 6:
-        px=yy; py=zz; pz=xx; 
+        px=yy; py=zz; pz=xx;
         break;
     }
     
@@ -260,18 +289,18 @@ void execiterations(void)
     layers[0].layereval = -1;
     qsort(layers, layerlistlen+1, sizeof(struct layerlist), complayerlist);
     
-    for (layersindex = 1; (layersindex <= layerlistlen) && !quit; layersindex++)
+    for (layersindex = 1; layersindex <= layerlistlen; layersindex++)
     {
       ++itenum;
       time(&finish);
       elapsedtime = difftime(finish, start);
-      printf("VARIANT: %5d; ITERATION (TOTAL): %5d; BEST SO FAR: %.3f %%; TIME: %.0f", variant, itenum, percentageused, elapsedtime); 
+      printf("VARIANT: %5d; ITERATION (TOTAL): %5d; BEST SO FAR: %.3f %%; TIME: %.0f", variant, itenum, percentageused, elapsedtime);
       packedvolume = 0.0;
       packedy = 0;
       packing = 1;
-      layerthickness = layers[layersindex].layerdim; 
+      layerthickness = layers[layersindex].layerdim;
       itelayer = layersindex;
-      remainpy = py; 
+      remainpy = py;
       remainpz = pz;
       packednumbox = 0;
       for (x = 1; x <= tbn; x++)
@@ -286,15 +315,15 @@ void execiterations(void)
         layerdone = 0;
         if (packlayer())
         {
-          exit(1); 
-        } 
+          exit(1);
+        }
         packedy = packedy + layerthickness;
         remainpy = py - packedy;
-        if (layerinlayer && !quit)
+        if (layerinlayer)
         {
-          prepackedy = packedy; 
-          preremainpy = remainpy; 
-          remainpy = layerthickness - prelayer; 
+          prepackedy = packedy;
+          preremainpy = remainpy;
+          remainpy = layerthickness - prelayer;
           packedy = packedy - layerthickness + prelayer;
           remainpz = lilz;
           layerthickness = layerinlayer;
@@ -302,26 +331,26 @@ void execiterations(void)
           if (packlayer())
           {
             exit( 1);
-          } 
-          packedy = prepackedy; 
+          }
+          packedy = prepackedy;
           remainpy = preremainpy;
           remainpz = pz;
-        } 
+        }
         findlayer(remainpy);
       }
-      while (packing && !quit);
+      while (packing);
       // END DO-WHILE
       
-      if ((packedvolume > bestvolume) && !quit) 
-      { 
+      if (packedvolume > bestvolume)
+      {
         bestvolume = packedvolume;
-        bestvariant = variant; 
-        bestite = itelayer; 
+        bestvariant = variant;
+        bestite = itelayer;
         bestpackednum = packednumbox;
       }
       
       if (hundredpercent) break;
-      percentageused = bestvolume * 100 / totalvolume; 
+      percentageused = bestvolume * 100 / totalvolume;
       printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
       printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
     }
@@ -331,13 +360,13 @@ void execiterations(void)
 }
 
 //**********************************************************************
-// LISTS ALL POSSIBLE LAYER HEIGHTS BY GIVING A WEIGHT VALUE TO 
+// LISTS ALL POSSIBLE LAYER HEIGHTS BY GIVING A WEIGHT VALUE TO
 // EACH OF THEM.
 //**********************************************************************
 void listcanditlayers(void)
 {
   char same;
-  short int exdim, dimdif, dimen2, dimen3, y, z, k; 
+  short int exdim, dimdif, dimen2, dimen3, y, z, k;
   long int layereval;
   
   layerlistlen = 0;
@@ -345,13 +374,13 @@ void listcanditlayers(void)
   for (x = 1; x <= tbn; x++)
   {
     for(y = 1; y <= 3; y++)
-    { 
-      switch(y) 
+    {
+      switch(y)
       {
         case 1:
           exdim = boxlist[x].dim1;
           dimen2 = boxlist[x].dim2;
-          dimen3 = boxlist[x].dim3; 
+          dimen3 = boxlist[x].dim3;
           break;
         case 2:
           exdim = boxlist[x].dim2;
@@ -410,31 +439,24 @@ int complayerlist(const void *i, const void *j)
 }
 
 //**********************************************************************
-// PACKS THE BOXES FOUND AND ARRANGES ALL VARIABLES AND 
+// PACKS THE BOXES FOUND AND ARRANGES ALL VARIABLES AND
 // RECORDS PROPERLY
 //**********************************************************************
 
 int packlayer(void){
   short int lenx, lenz, lpz;
   
-  if (!layerthickness) 
-  { 
+  if (!layerthickness)
+  {
     packing=0;
     return 0;
-  } 
+  }
   
   (*scrapfirst).cumx = px;
   (*scrapfirst).cumz = 0;
   
-  for(;!quit;)
+  while (1)
   {
-    if (kbhit()) {
-      if ( toupper(getch()) == 'Q' ) 
-      {
-        quit = 1;
-        printf("\n\nWait please...\n");
-      }
-    } 
     findsmallestz();
     
     if (!(*smallestz).pre && !(*smallestz).pos)
@@ -443,206 +465,140 @@ int packlayer(void){
       
       lenx = (*smallestz).cumx;
       lpz = remainpz - (*smallestz).cumz;
-      findbox(lenx, layerthickness, remainpy, lpz, lpz); 
+      findbox(lenx, layerthickness, remainpy, lpz, lpz);
       checkfound();
       
       if (layerdone) break;
-      if (evened) continue; 
+      if (evened) continue;
       
       boxlist[cboxi].cox = 0;
-      boxlist[cboxi].coy = packedy; 
+      boxlist[cboxi].coy = packedy;
       boxlist[cboxi].coz = (*smallestz).cumz;
       if (cboxx == (*smallestz).cumx)
       {
         (*smallestz).cumz = (*smallestz).cumz + cboxz;
       }
-      else 
+      else
       {
-        (*smallestz).pos = malloc(sizeof(struct scrappad)); 
-        if ((*smallestz).pos == NULL) 
+        (*smallestz).pos = malloc(sizeof(struct scrappad));
+        if ((*smallestz).pos == NULL)
         {
-          printf("Insufficient memory available\n"); 
+          printf("Insufficient memory available\n");
           return 1;
-        } 
+        }
         (*((*smallestz).pos)).pos = NULL;
-        (*((*smallestz).pos)).pre = smallestz; 
-        (*((*smallestz).pos)).cumx = (*smallestz).cumx; 
-        (*((*smallestz).pos)).cumz = (*smallestz).cumz; 
-        (*smallestz).cumx = cboxx; 
+        (*((*smallestz).pos)).pre = smallestz;
+        (*((*smallestz).pos)).cumx = (*smallestz).cumx;
+        (*((*smallestz).pos)).cumz = (*smallestz).cumz;
+        (*smallestz).cumx = cboxx;
         (*smallestz).cumz = (*smallestz).cumz + cboxz;
-      } 
+      }
       volumecheck();
     }
-    else if (!(*smallestz).pre) 
+    else if (!(*smallestz).pre)
     {
       //*** SITUATION-2: NO BOXES ON THE LEFT SIDE ***
       
       lenx = (*smallestz).cumx;
-      lenz = (*((*smallestz).pos)).cumz - (*smallestz).cumz; 
+      lenz = (*((*smallestz).pos)).cumz - (*smallestz).cumz;
       lpz = remainpz - (*smallestz).cumz;
-      findbox(lenx, layerthickness, remainpy, lenz, lpz); 
-      checkfound();
-      
-      if (layerdone) break;
-      if (evened) continue;
-      
-      boxlist[cboxi].coy = packedy; 
-      boxlist[cboxi].coz = (*smallestz).cumz; 
-      if (cboxx == (*smallestz).cumx) 
-      {
-        boxlist[cboxi].cox = 0;
-        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pos)).cumz )
-        { 
-          (*smallestz).cumz = (*((*smallestz).pos)).cumz; 
-          (*smallestz).cumx = (*((*smallestz).pos)).cumx; 
-          trash = (*smallestz).pos; 
-          (*smallestz).pos = (*((*smallestz).pos)).pos;
-          if ((*smallestz).pos) 
-          {
-            (*((*smallestz).pos)).pre = smallestz;
-          }
-          free(trash);
-        }
-        else 
-        {
-          (*smallestz).cumz = (*smallestz).cumz + cboxz;
-        }
-      }
-      else 
-      {
-        boxlist[cboxi].cox = (*smallestz).cumx - cboxx; 
-        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pos)).cumz )
-        {
-          (*smallestz).cumx = (*smallestz).cumx - cboxx;
-        }
-        else 
-        {
-          (*((*smallestz).pos)).pre = malloc(sizeof(struct scrappad));
-          if ((*((*smallestz).pos)).pre == NULL) 
-          { 
-            printf("Insufficient memory available\n"); 
-            return 1;
-          } 
-          (*((*((*smallestz).pos)).pre)).pos = (*smallestz).pos;
-          (*((*((*smallestz).pos)).pre)).pre = smallestz;
-          (*smallestz).pos = (*((*smallestz).pos)).pre; 
-          (*((*smallestz).pos)).cumx = (*smallestz).cumx;
-          (*smallestz).cumx = (*smallestz).cumx - cboxx; 
-          (*((*smallestz).pos)).cumz = (*smallestz).cumz + cboxz;
-        }
-      } 
-      volumecheck();
-    }
-    else if (!(*smallestz).pos)
-    {
-      //*** SITUATION-3: NO BOXES ON THE RIGHT SIDE ***
-      
-      lenx = (*smallestz).cumx - (*((*smallestz).pre)).cumx; 
-      lenz = (*((*smallestz).pre)).cumz - (*smallestz).cumz; 
-      lpz = remainpz - (* smallestz).cumz;
-      findbox(lenx, layerthickness, remainpy, lenz, lpz); 
-      checkfound();
-      
-      if (layerdone) break;
-      if (evened) continue;
-      
-      boxlist[cboxi].coy = packedy; 
-      boxlist[cboxi].coz = (*smallestz).cumz;
-      boxlist[cboxi].cox = (*((*smallestz).pre)).cumx;
-      
-      if (cboxx == (*smallestz).cumx - (*((*smallestz).pre)).cumx) 
-      {
-        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz )
-        { 
-          (*((*smallestz).pre)).cumx = (*smallestz).cumx; 
-          (*((*smallestz).pre)).pos = NULL;
-          free(smallestz);
-        } 
-        else 
-        {
-          (*smallestz).cumz = (*smallestz).cumz + cboxz;
-        }
-      }
-      else 
-      {
-        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz )
-        {
-          (*((*smallestz).pre)).cumx = (*((*smallestz).pre)).cumx + cboxx;
-        }
-        else 
-        {
-          (*((*smallestz).pre)).pos = malloc(sizeof(struct scrappad));
-          if ( (*((*smallestz).pre)).pos == NULL ) 
-          {
-            printf("Insufficient memory available\n"); 
-            return 1;
-          }
-          (*((*((*smallestz).pre)).pos)).pre = (*smallestz).pre;
-          (*((*((*smallestz).pre)).pos)).pos = smallestz; 
-          (*smallestz).pre = (*((*smallestz).pre)).pos; 
-          (*((*smallestz).pre)).cumx = (*((*((*smallestz).pre)).pre)).cumx + cboxx; 
-          (*((*smallestz).pre)).cumz = (*smallestz).cumz + cboxz;
-        }
-      } 
-      volumecheck();
-    }
-    else if ( (*((*smallestz).pre)).cumz == (*((*smallestz).pos)).cumz ) 
-    {
-      //*** SITUATION-4: THERE ARE BOXES ON BOTH OF THE SIDES *** 
-      
-      //*** SUBSITUATION-4A: SIDES ARE EQUAL TO EACH OTHER ***
-      
-      lenx = (*smallestz).cumx - (*((*smallestz).pre)).cumx; 
-      lenz = (*((*smallestz).pre)).cumz - (*smallestz).cumz;
-      lpz = remainpz - (*smallestz).cumz;
-      
-      findbox(lenx, layerthickness, remainpy, lenz, lpz); 
+      findbox(lenx, layerthickness, remainpy, lenz, lpz);
       checkfound();
       
       if (layerdone) break;
       if (evened) continue;
       
       boxlist[cboxi].coy = packedy;
-      boxlist[cboxi].coz = (*smallestz).cumz; 
-      if ( cboxx == (*smallestz).cumx - (*((*smallestz).pre)).cumx ) 
+      boxlist[cboxi].coz = (*smallestz).cumz;
+      if (cboxx == (*smallestz).cumx)
       {
-        boxlist[cboxi].cox = (*((*smallestz).pre)).cumx; 
+        boxlist[cboxi].cox = 0;
         if ( (*smallestz).cumz + cboxz == (*((*smallestz).pos)).cumz )
         {
-          (*((*smallestz).pre)).cumx = (*((*smallestz).pos)).cumx;
-          if ( (*((*smallestz).pos)).pos ) 
-          { 
-            (*((*smallestz).pre)).pos = (*((*smallestz).pos)).pos; 
-            (*((*((*smallestz).pos)).pos)).pre = (*smallestz).pre;
-            free(smallestz);
-          }
-          else 
+          (*smallestz).cumz = (*((*smallestz).pos)).cumz;
+          (*smallestz).cumx = (*((*smallestz).pos)).cumx;
+          trash = (*smallestz).pos;
+          (*smallestz).pos = (*((*smallestz).pos)).pos;
+          if ((*smallestz).pos)
           {
-            (*((*smallestz).pre)).pos = NULL;
-            free(smallestz);
+            (*((*smallestz).pos)).pre = smallestz;
           }
-        } 
+          free(trash);
+        }
         else
         {
           (*smallestz).cumz = (*smallestz).cumz + cboxz;
         }
       }
-      else if ( (*((*smallestz).pre)).cumx < px - (*smallestz).cumx ) 
+      else
       {
-        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz)
-        { 
-          (*smallestz).cumx = (*smallestz).cumx - cboxx; 
-          boxlist[cboxi].cox = (*smallestz).cumx - cboxx;
-        }
-        else 
+        boxlist[cboxi].cox = (*smallestz).cumx - cboxx;
+        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pos)).cumz )
         {
-          boxlist[cboxi].cox = (*((*smallestz).pre)).cumx; 
-          (*((*smallestz).pre)).pos = malloc(sizeof(struct scrappad)); 
-          if ( (*((*smallestz).pre)).pos == NULL ) 
+          (*smallestz).cumx = (*smallestz).cumx - cboxx;
+        }
+        else
+        {
+          (*((*smallestz).pos)).pre = malloc(sizeof(struct scrappad));
+          if ((*((*smallestz).pos)).pre == NULL)
           {
-            printf("Insufficient memory available\n"); 
+            printf("Insufficient memory available\n");
             return 1;
-          } 
+          }
+          (*((*((*smallestz).pos)).pre)).pos = (*smallestz).pos;
+          (*((*((*smallestz).pos)).pre)).pre = smallestz;
+          (*smallestz).pos = (*((*smallestz).pos)).pre;
+          (*((*smallestz).pos)).cumx = (*smallestz).cumx;
+          (*smallestz).cumx = (*smallestz).cumx - cboxx;
+          (*((*smallestz).pos)).cumz = (*smallestz).cumz + cboxz;
+        }
+      }
+      volumecheck();
+    }
+    else if (!(*smallestz).pos)
+    {
+      //*** SITUATION-3: NO BOXES ON THE RIGHT SIDE ***
+      
+      lenx = (*smallestz).cumx - (*((*smallestz).pre)).cumx;
+      lenz = (*((*smallestz).pre)).cumz - (*smallestz).cumz;
+      lpz = remainpz - (* smallestz).cumz;
+      findbox(lenx, layerthickness, remainpy, lenz, lpz);
+      checkfound();
+      
+      if (layerdone) break;
+      if (evened) continue;
+      
+      boxlist[cboxi].coy = packedy;
+      boxlist[cboxi].coz = (*smallestz).cumz;
+      boxlist[cboxi].cox = (*((*smallestz).pre)).cumx;
+      
+      if (cboxx == (*smallestz).cumx - (*((*smallestz).pre)).cumx)
+      {
+        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz )
+        {
+          (*((*smallestz).pre)).cumx = (*smallestz).cumx;
+          (*((*smallestz).pre)).pos = NULL;
+          free(smallestz);
+        }
+        else
+        {
+          (*smallestz).cumz = (*smallestz).cumz + cboxz;
+        }
+      }
+      else
+      {
+        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz )
+        {
+          (*((*smallestz).pre)).cumx = (*((*smallestz).pre)).cumx + cboxx;
+        }
+        else
+        {
+          (*((*smallestz).pre)).pos = malloc(sizeof(struct scrappad));
+          if ( (*((*smallestz).pre)).pos == NULL )
+          {
+            printf("Insufficient memory available\n");
+            return 1;
+          }
           (*((*((*smallestz).pre)).pos)).pre = (*smallestz).pre;
           (*((*((*smallestz).pre)).pos)).pos = smallestz;
           (*smallestz).pre = (*((*smallestz).pre)).pos;
@@ -650,33 +606,99 @@ int packlayer(void){
           (*((*smallestz).pre)).cumz = (*smallestz).cumz + cboxz;
         }
       }
-      else 
+      volumecheck();
+    }
+    else if ( (*((*smallestz).pre)).cumz == (*((*smallestz).pos)).cumz )
+    {
+      //*** SITUATION-4: THERE ARE BOXES ON BOTH OF THE SIDES ***
+      
+      //*** SUBSITUATION-4A: SIDES ARE EQUAL TO EACH OTHER ***
+      
+      lenx = (*smallestz).cumx - (*((*smallestz).pre)).cumx;
+      lenz = (*((*smallestz).pre)).cumz - (*smallestz).cumz;
+      lpz = remainpz - (*smallestz).cumz;
+      
+      findbox(lenx, layerthickness, remainpy, lenz, lpz);
+      checkfound();
+      
+      if (layerdone) break;
+      if (evened) continue;
+      
+      boxlist[cboxi].coy = packedy;
+      boxlist[cboxi].coz = (*smallestz).cumz;
+      if ( cboxx == (*smallestz).cumx - (*((*smallestz).pre)).cumx )
+      {
+        boxlist[cboxi].cox = (*((*smallestz).pre)).cumx;
+        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pos)).cumz )
+        {
+          (*((*smallestz).pre)).cumx = (*((*smallestz).pos)).cumx;
+          if ( (*((*smallestz).pos)).pos )
+          {
+            (*((*smallestz).pre)).pos = (*((*smallestz).pos)).pos;
+            (*((*((*smallestz).pos)).pos)).pre = (*smallestz).pre;
+            free(smallestz);
+          }
+          else
+          {
+            (*((*smallestz).pre)).pos = NULL;
+            free(smallestz);
+          }
+        }
+        else
+        {
+          (*smallestz).cumz = (*smallestz).cumz + cboxz;
+        }
+      }
+      else if ( (*((*smallestz).pre)).cumx < px - (*smallestz).cumx )
+      {
+        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz)
+        {
+          (*smallestz).cumx = (*smallestz).cumx - cboxx;
+          boxlist[cboxi].cox = (*smallestz).cumx - cboxx;
+        }
+        else
+        {
+          boxlist[cboxi].cox = (*((*smallestz).pre)).cumx;
+          (*((*smallestz).pre)).pos = malloc(sizeof(struct scrappad));
+          if ( (*((*smallestz).pre)).pos == NULL )
+          {
+            printf("Insufficient memory available\n");
+            return 1;
+          }
+          (*((*((*smallestz).pre)).pos)).pre = (*smallestz).pre;
+          (*((*((*smallestz).pre)).pos)).pos = smallestz;
+          (*smallestz).pre = (*((*smallestz).pre)).pos;
+          (*((*smallestz).pre)).cumx = (*((*((*smallestz).pre)).pre)).cumx + cboxx;
+          (*((*smallestz).pre)).cumz = (*smallestz).cumz + cboxz;
+        }
+      }
+      else
       {
         if ( (*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz )
-        { 
-          (*((*smallestz).pre)).cumx = (*((*smallestz).pre)).cumx + cboxx; 
+        {
+          (*((*smallestz).pre)).cumx = (*((*smallestz).pre)).cumx + cboxx;
           boxlist[cboxi].cox = (*((*smallestz).pre)).cumx;
         }
-        else 
+        else
         {
           boxlist[cboxi].cox = (*smallestz).cumx - cboxx;
           (*((*smallestz).pos)).pre = malloc(sizeof(struct scrappad));
-          if ((*((*smallestz).pos)).pre == NULL) 
+          if ((*((*smallestz).pos)).pre == NULL)
           {
-            printf("Insufficient memory available\n"); 
+            printf("Insufficient memory available\n");
             return 1;
           }
           (*((*((*smallestz).pos)).pre)).pos = (*smallestz).pos;
           (*((*((*smallestz).pos)).pre)).pre = smallestz;
           (*smallestz).pos = (*((*smallestz).pos)).pre;
           (*((*smallestz).pos)).cumx = (*smallestz).cumx;
-          (*((*smallestz).pos)).cumz = (*smallestz).cumz + cboxz; 
+          (*((*smallestz).pos)).cumz = (*smallestz).cumz + cboxz;
           (*smallestz).cumx = (*smallestz).cumx - cboxx;
         }
-      } 
+      }
       volumecheck();
     }
-    else 
+    else
     {
       //*** SUBSITUATION-4B: SIDES ARE NOT EQUAL TO EACH OTHER ***
       
@@ -695,33 +717,33 @@ int packlayer(void){
       if ( cboxx == (*smallestz).cumx - (*((*smallestz).pre)).cumx )
       {
         if ((*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz)
-        { 
-          (*((*smallestz).pre)).cumx = (*smallestz).cumx; 
+        {
+          (*((*smallestz).pre)).cumx = (*smallestz).cumx;
           (*((*smallestz).pre)).pos = (*smallestz).pos;
           (*((*smallestz).pos)).pre = (*smallestz).pre;
           free(smallestz);
-        } 
+        }
         else
         {
           (*smallestz).cumz = (*smallestz).cumz + cboxz;
         }
       }
-      else 
+      else
       {
         if ( (*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz )
         {
           (*((*smallestz).pre)).cumx = (*((*smallestz).pre)).cumx + cboxx;
-        } 
+        }
         else if ( (*smallestz).cumz + cboxz == (*((*smallestz).pos)).cumz )
-        { 
+        {
           boxlist[cboxi].cox = (*smallestz).cumx - cboxx;
           (*smallestz).cumx = (*smallestz).cumx - cboxx;
         }
         else
         {
           (*((*smallestz).pre)).pos = malloc(sizeof(struct scrappad));
-          if ( (*((*smallestz).pre)).pos == NULL ) 
-          { 
+          if ( (*((*smallestz).pre)).pos == NULL )
+          {
             printf("Insufficient memory available\n");
             return 1;
           }
@@ -734,27 +756,27 @@ int packlayer(void){
       }
       volumecheck();
     }
-  } 
+  }
   return 0;
 }
 
 //**********************************************************************
-// FINDS THE MOST PROPER LAYER HIGHT BY LOOKING AT THE UNPACKED 
+// FINDS THE MOST PROPER LAYER HIGHT BY LOOKING AT THE UNPACKED
 // BOXES AND THE REMAINING EMPTY SPACE AVAILABLE
 //**********************************************************************
 
-int findlayer(short int thickness) 
+int findlayer(short int thickness)
 {
-  short int exdim, dimdif, dimen2, dimen3, y, z; 
+  short int exdim, dimdif, dimen2, dimen3, y, z;
   long int layereval, eval;
-  layerthickness = 0; 
-  eval = 1000000; 
+  layerthickness = 0;
+  eval = 1000000;
   for (x=1; x <= tbn; x++)
   {
-    if (boxlist[x].packst) continue; 
+    if (boxlist[x].packst) continue;
     for( y = 1; y <= 3; y++)
     {
-      switch(y) 
+      switch(y)
       {
         case 1:
           exdim = boxlist[x].dim1;
@@ -764,9 +786,9 @@ int findlayer(short int thickness)
         case 2:
           exdim = boxlist[x].dim2;
           dimen2 = boxlist[x].dim1;
-          dimen3 = boxlist[x].dim3; 
+          dimen3 = boxlist[x].dim3;
           break;
-       case 3:
+        case 3:
           exdim = boxlist[x].dim3;
           dimen2 = boxlist[x].dim1;
           dimen3 = boxlist[x].dim2;
@@ -774,11 +796,11 @@ int findlayer(short int thickness)
       }
       layereval = 0;
       if ( (exdim <= thickness) && (((dimen2 <= px) && (dimen3 <= pz)) || ((dimen3 <= px) && (dimen2 <= pz))) )
-      { 
+      {
         for (z = 1; z <= tbn; z++)
         {
           if ( !(x == z) && !(boxlist[z].packst))
-          { 
+          {
             dimdif = abs(exdim - boxlist[z].dim1);
             if ( abs(exdim - boxlist[z].dim2) < dimdif )
             {
@@ -799,24 +821,24 @@ int findlayer(short int thickness)
       }
     }
   }
-  if (layerthickness == 0 || layerthickness > remainpy) packing = 0; 
+  if (layerthickness == 0 || layerthickness > remainpy) packing = 0;
   return 0;
 }
 
 //**********************************************************************
-// FINDS THE MOST PROPER BOXES BY LOOKING AT ALL SIX POSSIBLE 
+// FINDS THE MOST PROPER BOXES BY LOOKING AT ALL SIX POSSIBLE
 // ORIENTATIONS, EMPTY SPACE GIVEN, ADJACENT BOXES, AND PALLET LIMITS
 //**********************************************************************
 
 void findbox(short int hmx, short int hy, short int hmy, short int hz, short int hmz)
-{ 
+{
   short int y;
-  bfx = 32767; bfy = 32767; bfz = 32767; 
-  bbfx = 32767; bbfy = 32767; bbfz = 32767; 
+  bfx = 32767; bfy = 32767; bfz = 32767;
+  bbfx = 32767; bbfy = 32767; bbfz = 32767;
   boxi = 0; bboxi = 0;
   for (y = 1; y <= tbn; y = y + boxlist[y].n)
   {
-    for (x = y; x < x + boxlist[y].n - 1; x++) 
+    for (x = y; x < x + boxlist[y].n - 1; x++)
     {
       if (!boxlist[x].packst) break;
     }
@@ -833,29 +855,29 @@ void findbox(short int hmx, short int hy, short int hmy, short int hz, short int
 }
 
 //**********************************************************************
-// ANALYZES EACH UNPACKED BOX TO FIND THE BEST FITTING ONE TO 
+// ANALYZES EACH UNPACKED BOX TO FIND THE BEST FITTING ONE TO
 // THE EMPTY SPACE GIVEN
 //**********************************************************************
 
 void analyzebox(short int hmx, short int hy, short int hmy, short int hz, short int hmz, short int dim1, short int dim2, short int dim3)
 {
-  if (dim1 <= hmx && dim2 <= hmy && dim3 <= hmz) 
+  if (dim1 <= hmx && dim2 <= hmy && dim3 <= hmz)
   {
-    if (dim2 <= hy) 
+    if (dim2 <= hy)
     {
-      if (hy - dim2 < bfy) 
+      if (hy - dim2 < bfy)
       {
-        boxx = dim1; 
-        boxy = dim2; 
+        boxx = dim1;
+        boxy = dim2;
         boxz = dim3;
         bfx = hmx - dim1;
         bfy = hy - dim2;
         bfz = abs(hz - dim3);
         boxi = x;
       }
-      else if (hy - dim2 == bfy && hmx - dim1 < bfx) 
+      else if (hy - dim2 == bfy && hmx - dim1 < bfx)
       {
-        boxx = dim1; 
+        boxx = dim1;
         boxy = dim2;
         boxz = dim3;
         bfx = hmx - dim1;
@@ -868,15 +890,15 @@ void analyzebox(short int hmx, short int hy, short int hmy, short int hz, short 
         boxx = dim1;
         boxy = dim2;
         boxz = dim3;
-        bfx = hmx - dim1; 
-        bfy = hy - dim2; 
+        bfx = hmx - dim1;
+        bfy = hy - dim2;
         bfz = abs(hz - dim3);
         boxi = x;
       }
     }
-    else 
+    else
     {
-      if (dim2 - hy < bbfy) 
+      if (dim2 - hy < bbfy)
       {
         bboxx = dim1;
         bboxy = dim2;
@@ -886,7 +908,7 @@ void analyzebox(short int hmx, short int hy, short int hmy, short int hz, short 
         bbfz = abs(hz - dim3);
         bboxi = x;
       }
-      else if (dim2 - hy == bbfy && hmx - dim1 < bbfx) 
+      else if (dim2 - hy == bbfy && hmx - dim1 < bbfx)
       {
         bboxx = dim1;
         bboxy = dim2;
@@ -896,8 +918,8 @@ void analyzebox(short int hmx, short int hy, short int hmy, short int hz, short 
         bbfz = abs(hz - dim3);
         bboxi = x;
       }
-      else if (dim2 - hy == bbfy && hmx-dim1 == bbfx && abs(hz - dim3) < bbfz) 
-      { 
+      else if (dim2 - hy == bbfy && hmx-dim1 == bbfx && abs(hz - dim3) < bbfz)
+      {
         bboxx = dim1;
         bboxy = dim2;
         bboxz = dim3;
@@ -909,45 +931,45 @@ void analyzebox(short int hmx, short int hy, short int hmy, short int hz, short 
     }
   }
 }
-            
+
 //********************************************************
 // FINDS THE FIRST TO BE PACKED GAP IN THE LAYER EDGE
 //********************************************************
-void findsmallestz(void) 
-{ 
+void findsmallestz(void)
+{
   scrapmemb = scrapfirst;
   smallestz = scrapmemb;
   while ( !((*scrapmemb).pos == NULL))
-  { 
+  {
     if ( (*((*scrapmemb).pos)).cumz < (*smallestz).cumz )
     {
       smallestz = (*scrapmemb).pos;
     }
     scrapmemb = (*scrapmemb).pos;
-  } 
+  }
   return;
-} 
+}
 
 //************************************************************
-// AFTER FINDING EACH BOX, THE CANDIDATE BOXES AND THE 
+// AFTER FINDING EACH BOX, THE CANDIDATE BOXES AND THE
 // CONDITION OF THE LAYER ARE EXAMINED
 //************************************************************
 
 void checkfound(void)
-{ 
+{
   evened = 0;
-  if (boxi) 
-  { 
+  if (boxi)
+  {
     cboxi = boxi;
     cboxx = boxx;
     cboxy = boxy;
     cboxz = boxz;
   }
-  else 
+  else
   {
     if ( (bboxi > 0) && (layerinlayer || (!(*smallestz).pre && !(*smallestz).pos)) )
-    { 
-      if (!layerinlayer) 
+    {
+      if (!layerinlayer)
       {
         prelayer = layerthickness;
         lilz = (*smallestz).cumz;
@@ -963,16 +985,16 @@ void checkfound(void)
     {
       if ( !(*smallestz).pre && !(*smallestz).pos )
       {
-        layerdone = 1; 
+        layerdone = 1;
       }
-      else 
+      else
       {
         evened = 1;
-        if (!(*smallestz).pre) 
+        if (!(*smallestz).pre)
         {
-          trash = (*smallestz).pos; 
+          trash = (*smallestz).pos;
           (*smallestz).cumx = (*((*smallestz).pos)).cumx;
-          (*smallestz).cumz = (*((*smallestz).pos)).cumz; 
+          (*smallestz).cumz = (*((*smallestz).pos)).cumz;
           (*smallestz).pos = (*((*smallestz).pos)).pos;
           if ((*smallestz).pos)
           {
@@ -982,34 +1004,34 @@ void checkfound(void)
         }
         else if (!(*smallestz).pos)
         {
-          (*((*smallestz).pre)).pos = NULL; 
+          (*((*smallestz).pre)).pos = NULL;
           (*((*smallestz).pre)).cumx = (*smallestz).cumx;
           free(smallestz);
         }
-        else 
+        else
         {
-          if ( (*((*smallestz).pre)).cumz == (*((*smallestz).pos)).cumz ) 
+          if ( (*((*smallestz).pre)).cumz == (*((*smallestz).pos)).cumz )
           {
             (*((*smallestz).pre)).pos = (*((*smallestz).pos)).pos;
             if ((*((*smallestz).pos)).pos)
             {
               (*((*((*smallestz).pos)).pos)).pre = (*smallestz).pre;
-            } 
+            }
             (*((*smallestz).pre)).cumx = (*((*smallestz).pos)).cumx;
             free((*smallestz).pos);
             free(smallestz);
           }
           else
           {
-            (*((*smallestz).pre)).pos = (*smallestz).pos; 
+            (*((*smallestz).pre)).pos = (*smallestz).pos;
             (*((*smallestz).pos)).pre = (*smallestz).pre;
-            if ((*((*smallestz).pre)).cumz < (*((*smallestz).pos)).cumz) 
+            if ((*((*smallestz).pre)).cumz < (*((*smallestz).pos)).cumz)
             {
               (*((*smallestz).pre)).cumx = (*smallestz).cumx;
             }
             free(smallestz);
           }
-        } 
+        }
       }
     }
   }
@@ -1020,8 +1042,8 @@ void checkfound(void)
 // AFTER PACKING OF EACH BOX, 100% PACKING CONDITION IS CHECKED
 //********************************************************************
 
-void volumecheck (void) 
-{ 
+void volumecheck (void)
+{
   boxlist[cboxi].packst = 1;
   boxlist[cboxi].packx = cboxx;
   boxlist[cboxi].packy = cboxy;
@@ -1091,14 +1113,14 @@ void outputboxlist(void)
   
   short int x, y, z, bx, by, bz;
   
-  switch(bestvariant) 
-  { 
+  switch(bestvariant)
+  {
     case 1:
-      x = boxlist[cboxi].cox; 
-      y = boxlist[cboxi].coy; 
-      z = boxlist[cboxi].coz; 
-      bx = boxlist[cboxi].packx; 
-      by = boxlist[cboxi].packy; 
+      x = boxlist[cboxi].cox;
+      y = boxlist[cboxi].coy;
+      z = boxlist[cboxi].coz;
+      bx = boxlist[cboxi].packx;
+      by = boxlist[cboxi].packy;
       bz = boxlist[cboxi].packz;
       break;
     case 2:
@@ -1235,7 +1257,7 @@ void report(void)
   fprintf(ofp,"---------------------------------------------------------------------------------------------\n");
   fprintf(ofp,"  NO: PACKSTA DIMEN-1  DMEN-2  DIMEN-3   COOR-X   COOR-Y   COOR-Z   PACKEDX  PACKEDY  PACKEDZ\n");
   fprintf(ofp,"---------------------------------------------------------------------------------------------\n");
-                                                                                                                                               
+  
   listcanditlayers();
   layers[0].layereval= -1;
   qsort(layers, layerlistlen + 1, sizeof(struct layerlist), complayerlist);
@@ -1272,12 +1294,9 @@ void report(void)
       remainpy = preremainpy;
       remainpz = pz;
     }
-    if (!quit)
-    {
-      findlayer(remainpy);
-    }
+    findlayer(remainpy);
   }
-  while (packing && !quit);
+  while (packing);
   
   fprintf(ofp,"\n\n *** LIST OF UNPACKED BOXES ***\n");
   unpacked = 1;
@@ -1302,13 +1321,23 @@ void report(void)
   printf("ELAPSED TIME                       : Almost %.0f sec\n", elapsedtime);
   printf("TOTAL NUMBER OF ITERATIONS DONE    : %d\n", itenum);
   printf("BEST SOLUTION FOUND AT             : ITERATION: %d OF VARIANT: %d\n", bestite, bestvariant);
-  printf("TOTAL NUMBER OF BOXES              : %d\n", tbn); 
+  printf("TOTAL NUMBER OF BOXES              : %d\n", tbn);
   printf("PACKED NUMBER OF BOXES             : %d\n", bestpackednum);
   printf("TOTAL VOLUME OF ALL BOXES          : %.0f\n", totalboxvol);
-  printf("PALLET VOLUME                      :%.0f\n",totalvolume); 
+  printf("PALLET VOLUME                      :%.0f\n",totalvolume);
   printf("BEST SOLUTION'S VOLUME UTILIZATION :%.0f OUT OF %.0f\n", bestvolume, totalvolume);
   printf("PERCENTAGE OF PALLET VOLUME USED   : %.6f %%\n", percentageused);
   printf("PERCENTAGE OF PACKEDBOXES (VOLUME) :%.6f%%\n", percentagepackedbox);
-  printf("WHILE PALLET ORIENTATION           : X=%d; Y=%d; Z= %d\n\n\n", px, py, pz); 
+  printf("WHILE PALLET ORIENTATION           : X=%d; Y=%d; Z= %d\n\n\n", px, py, pz);
   printf("TO VISUALIZE THIS SOLUTION, PLEASE RUN 'VISUAL.EXE'\n");
+}
+
+void print_help(void)
+{
+  printf("USAGE:\n");
+  printf("\tboxologic <option>\n");
+  printf("\nOPTIONS:\n");
+  printf("\t-f <boxlist text file>   : Perform bin packing analysis\n");
+  printf("\t-v                       : Print software version\n");
+  printf("\t-h                       : Print this help screen\n\n");
 }
