@@ -1323,7 +1323,7 @@ void print_help(void)
   printf("USAGE:\n");
   printf("\tboxologic <option>\n");
   printf("\nOPTIONS:\n");
-  printf("\t-f <boxlist text file>   : Perform bin packing analysis\n");
-  printf("\t-v                       : Print software version\n");
-  printf("\t-h                       : Print this help screen\n\n");
+  printf("\t[ -f|--inputfile ] <boxlist text file>   : Perform bin packing analysis\n");
+  printf("\t[ -v|--version ]                         : Print software version\n");
+  printf("\t[ -h|--help ]                            : Print this help screen\n\n");
 }
