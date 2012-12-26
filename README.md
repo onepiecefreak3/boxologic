@@ -12,7 +12,7 @@ Caveat Emptor
 This codebase is currently undergoing fairly sweeping changes. While we'll try our very best to always have compile-ready, working code here, no guarantees of any sort are made. Currently the visualizer only runs using the windows-only code & binary supplied the [project this one was forked from](https://github.com/wknechtel/3d-bin-pack). The visualizer in this fork is slated to be rewritten using OpenGL, and will be cross-platform.
 
 Usage
-_____
+-----
     USAGE:
     	boxologic <option>
 
