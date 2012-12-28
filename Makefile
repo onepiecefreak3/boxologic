@@ -3,4 +3,4 @@ default:
 	@echo 'Now try "make demo" for sample results.'
 
 demo: default
-	./boxologic -f bin/boxlist.txt
+	./boxologic -f doc/boxlist.txt
