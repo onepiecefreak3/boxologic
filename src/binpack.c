@@ -105,7 +105,7 @@ struct layerlist{
 } layers[1000];
 
 struct scrappad{
-  struct scrappad *pre, *pos;
+  struct scrappad *prev, *next;
   short int cumx, cumz;
 };
 
@@ -186,13 +186,13 @@ void initialize(void)
   
   scrapfirst = malloc(sizeof(struct scrappad));
 //  TODO: Ask Ryan about this piece of logic
-//  if ((*scrapfirst).pos == NULL)
+//  if ((*scrapfirst).next == NULL)
 //  {
 //    printf("Insufficient memory available\n");
 //    exit(1);
 //  }
-  (*scrapfirst).pre = NULL;
-  (*scrapfirst).pos = NULL;
+  (*scrapfirst).prev = NULL;
+  (*scrapfirst).next = NULL;
   bestvolume = 0.0;
   packingbest = 0;
   hundredpercent = 0;
@@ -448,7 +448,7 @@ int pack_layer(void){
   {
     find_smallest_z();
     
-    if (!(*smallestz).pre && !(*smallestz).pos)
+    if (!(*smallestz).prev && !(*smallestz).next)
     {
       //*** SITUATION-1: NO BOXES ON THE RIGHT AND LEFT SIDES ***
       
@@ -469,27 +469,27 @@ int pack_layer(void){
       }
       else
       {
-        (*smallestz).pos = malloc(sizeof(struct scrappad));
-        if ((*smallestz).pos == NULL)
+        (*smallestz).next = malloc(sizeof(struct scrappad));
+        if ((*smallestz).next == NULL)
         {
           printf("Insufficient memory available\n");
           return 1;
         }
-        (*((*smallestz).pos)).pos = NULL;
-        (*((*smallestz).pos)).pre = smallestz;
-        (*((*smallestz).pos)).cumx = (*smallestz).cumx;
-        (*((*smallestz).pos)).cumz = (*smallestz).cumz;
+        (*((*smallestz).next)).next = NULL;
+        (*((*smallestz).next)).prev = smallestz;
+        (*((*smallestz).next)).cumx = (*smallestz).cumx;
+        (*((*smallestz).next)).cumz = (*smallestz).cumz;
         (*smallestz).cumx = cboxx;
         (*smallestz).cumz = (*smallestz).cumz + cboxz;
       }
       volume_check();
     }
-    else if (!(*smallestz).pre)
+    else if (!(*smallestz).prev)
     {
       //*** SITUATION-2: NO BOXES ON THE LEFT SIDE ***
       
       lenx = (*smallestz).cumx;
-      lenz = (*((*smallestz).pos)).cumz - (*smallestz).cumz;
+      lenz = (*((*smallestz).next)).cumz - (*smallestz).cumz;
       lpz = remainpz - (*smallestz).cumz;
       find_box(lenx, layerthickness, remainpy, lenz, lpz);
       checkfound();
@@ -502,15 +502,15 @@ int pack_layer(void){
       if (cboxx == (*smallestz).cumx)
       {
         boxlist[cboxi].cox = 0;
-        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pos)).cumz )
+        if ( (*smallestz).cumz + cboxz == (*((*smallestz).next)).cumz )
         {
-          (*smallestz).cumz = (*((*smallestz).pos)).cumz;
-          (*smallestz).cumx = (*((*smallestz).pos)).cumx;
-          trash = (*smallestz).pos;
-          (*smallestz).pos = (*((*smallestz).pos)).pos;
-          if ((*smallestz).pos)
+          (*smallestz).cumz = (*((*smallestz).next)).cumz;
+          (*smallestz).cumx = (*((*smallestz).next)).cumx;
+          trash = (*smallestz).next;
+          (*smallestz).next = (*((*smallestz).next)).next;
+          if ((*smallestz).next)
           {
-            (*((*smallestz).pos)).pre = smallestz;
+            (*((*smallestz).next)).prev = smallestz;
           }
           free(trash);
         }
@@ -522,34 +522,34 @@ int pack_layer(void){
       else
       {
         boxlist[cboxi].cox = (*smallestz).cumx - cboxx;
-        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pos)).cumz )
+        if ( (*smallestz).cumz + cboxz == (*((*smallestz).next)).cumz )
         {
           (*smallestz).cumx = (*smallestz).cumx - cboxx;
         }
         else
         {
-          (*((*smallestz).pos)).pre = malloc(sizeof(struct scrappad));
-          if ((*((*smallestz).pos)).pre == NULL)
+          (*((*smallestz).next)).prev = malloc(sizeof(struct scrappad));
+          if ((*((*smallestz).next)).prev == NULL)
           {
             printf("Insufficient memory available\n");
             return 1;
           }
-          (*((*((*smallestz).pos)).pre)).pos = (*smallestz).pos;
-          (*((*((*smallestz).pos)).pre)).pre = smallestz;
-          (*smallestz).pos = (*((*smallestz).pos)).pre;
-          (*((*smallestz).pos)).cumx = (*smallestz).cumx;
+          (*((*((*smallestz).next)).prev)).next = (*smallestz).next;
+          (*((*((*smallestz).next)).prev)).prev = smallestz;
+          (*smallestz).next = (*((*smallestz).next)).prev;
+          (*((*smallestz).next)).cumx = (*smallestz).cumx;
           (*smallestz).cumx = (*smallestz).cumx - cboxx;
-          (*((*smallestz).pos)).cumz = (*smallestz).cumz + cboxz;
+          (*((*smallestz).next)).cumz = (*smallestz).cumz + cboxz;
         }
       }
       volume_check();
     }
-    else if (!(*smallestz).pos)
+    else if (!(*smallestz).next)
     {
       //*** SITUATION-3: NO BOXES ON THE RIGHT SIDE ***
       
-      lenx = (*smallestz).cumx - (*((*smallestz).pre)).cumx;
-      lenz = (*((*smallestz).pre)).cumz - (*smallestz).cumz;
+      lenx = (*smallestz).cumx - (*((*smallestz).prev)).cumx;
+      lenz = (*((*smallestz).prev)).cumz - (*smallestz).cumz;
       lpz = remainpz - (* smallestz).cumz;
       find_box(lenx, layerthickness, remainpy, lenz, lpz);
       checkfound();
@@ -559,14 +559,14 @@ int pack_layer(void){
       
       boxlist[cboxi].coy = packedy;
       boxlist[cboxi].coz = (*smallestz).cumz;
-      boxlist[cboxi].cox = (*((*smallestz).pre)).cumx;
+      boxlist[cboxi].cox = (*((*smallestz).prev)).cumx;
       
-      if (cboxx == (*smallestz).cumx - (*((*smallestz).pre)).cumx)
+      if (cboxx == (*smallestz).cumx - (*((*smallestz).prev)).cumx)
       {
-        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz )
+        if ( (*smallestz).cumz + cboxz == (*((*smallestz).prev)).cumz )
         {
-          (*((*smallestz).pre)).cumx = (*smallestz).cumx;
-          (*((*smallestz).pre)).pos = NULL;
+          (*((*smallestz).prev)).cumx = (*smallestz).cumx;
+          (*((*smallestz).prev)).next = NULL;
           free(smallestz);
         }
         else
@@ -576,35 +576,35 @@ int pack_layer(void){
       }
       else
       {
-        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz )
+        if ( (*smallestz).cumz + cboxz == (*((*smallestz).prev)).cumz )
         {
-          (*((*smallestz).pre)).cumx = (*((*smallestz).pre)).cumx + cboxx;
+          (*((*smallestz).prev)).cumx = (*((*smallestz).prev)).cumx + cboxx;
         }
         else
         {
-          (*((*smallestz).pre)).pos = malloc(sizeof(struct scrappad));
-          if ( (*((*smallestz).pre)).pos == NULL )
+          (*((*smallestz).prev)).next = malloc(sizeof(struct scrappad));
+          if ( (*((*smallestz).prev)).next == NULL )
           {
             printf("Insufficient memory available\n");
             return 1;
           }
-          (*((*((*smallestz).pre)).pos)).pre = (*smallestz).pre;
-          (*((*((*smallestz).pre)).pos)).pos = smallestz;
-          (*smallestz).pre = (*((*smallestz).pre)).pos;
-          (*((*smallestz).pre)).cumx = (*((*((*smallestz).pre)).pre)).cumx + cboxx;
-          (*((*smallestz).pre)).cumz = (*smallestz).cumz + cboxz;
+          (*((*((*smallestz).prev)).next)).prev = (*smallestz).prev;
+          (*((*((*smallestz).prev)).next)).next = smallestz;
+          (*smallestz).prev = (*((*smallestz).prev)).next;
+          (*((*smallestz).prev)).cumx = (*((*((*smallestz).prev)).prev)).cumx + cboxx;
+          (*((*smallestz).prev)).cumz = (*smallestz).cumz + cboxz;
         }
       }
       volume_check();
     }
-    else if ( (*((*smallestz).pre)).cumz == (*((*smallestz).pos)).cumz )
+    else if ( (*((*smallestz).prev)).cumz == (*((*smallestz).next)).cumz )
     {
       //*** SITUATION-4: THERE ARE BOXES ON BOTH OF THE SIDES ***
       
       //*** SUBSITUATION-4A: SIDES ARE EQUAL TO EACH OTHER ***
       
-      lenx = (*smallestz).cumx - (*((*smallestz).pre)).cumx;
-      lenz = (*((*smallestz).pre)).cumz - (*smallestz).cumz;
+      lenx = (*smallestz).cumx - (*((*smallestz).prev)).cumx;
+      lenz = (*((*smallestz).prev)).cumz - (*smallestz).cumz;
       lpz = remainpz - (*smallestz).cumz;
       
       find_box(lenx, layerthickness, remainpy, lenz, lpz);
@@ -615,21 +615,21 @@ int pack_layer(void){
       
       boxlist[cboxi].coy = packedy;
       boxlist[cboxi].coz = (*smallestz).cumz;
-      if ( cboxx == (*smallestz).cumx - (*((*smallestz).pre)).cumx )
+      if ( cboxx == (*smallestz).cumx - (*((*smallestz).prev)).cumx )
       {
-        boxlist[cboxi].cox = (*((*smallestz).pre)).cumx;
-        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pos)).cumz )
+        boxlist[cboxi].cox = (*((*smallestz).prev)).cumx;
+        if ( (*smallestz).cumz + cboxz == (*((*smallestz).next)).cumz )
         {
-          (*((*smallestz).pre)).cumx = (*((*smallestz).pos)).cumx;
-          if ( (*((*smallestz).pos)).pos )
+          (*((*smallestz).prev)).cumx = (*((*smallestz).next)).cumx;
+          if ( (*((*smallestz).next)).next )
           {
-            (*((*smallestz).pre)).pos = (*((*smallestz).pos)).pos;
-            (*((*((*smallestz).pos)).pos)).pre = (*smallestz).pre;
+            (*((*smallestz).prev)).next = (*((*smallestz).next)).next;
+            (*((*((*smallestz).next)).next)).prev = (*smallestz).prev;
             free(smallestz);
           }
           else
           {
-            (*((*smallestz).pre)).pos = NULL;
+            (*((*smallestz).prev)).next = NULL;
             free(smallestz);
           }
         }
@@ -638,50 +638,50 @@ int pack_layer(void){
           (*smallestz).cumz = (*smallestz).cumz + cboxz;
         }
       }
-      else if ( (*((*smallestz).pre)).cumx < px - (*smallestz).cumx )
+      else if ( (*((*smallestz).prev)).cumx < px - (*smallestz).cumx )
       {
-        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz)
+        if ( (*smallestz).cumz + cboxz == (*((*smallestz).prev)).cumz)
         {
           (*smallestz).cumx = (*smallestz).cumx - cboxx;
           boxlist[cboxi].cox = (*smallestz).cumx - cboxx;
         }
         else
         {
-          boxlist[cboxi].cox = (*((*smallestz).pre)).cumx;
-          (*((*smallestz).pre)).pos = malloc(sizeof(struct scrappad));
-          if ( (*((*smallestz).pre)).pos == NULL )
+          boxlist[cboxi].cox = (*((*smallestz).prev)).cumx;
+          (*((*smallestz).prev)).next = malloc(sizeof(struct scrappad));
+          if ( (*((*smallestz).prev)).next == NULL )
           {
             printf("Insufficient memory available\n");
             return 1;
           }
-          (*((*((*smallestz).pre)).pos)).pre = (*smallestz).pre;
-          (*((*((*smallestz).pre)).pos)).pos = smallestz;
-          (*smallestz).pre = (*((*smallestz).pre)).pos;
-          (*((*smallestz).pre)).cumx = (*((*((*smallestz).pre)).pre)).cumx + cboxx;
-          (*((*smallestz).pre)).cumz = (*smallestz).cumz + cboxz;
+          (*((*((*smallestz).prev)).next)).prev = (*smallestz).prev;
+          (*((*((*smallestz).prev)).next)).next = smallestz;
+          (*smallestz).prev = (*((*smallestz).prev)).next;
+          (*((*smallestz).prev)).cumx = (*((*((*smallestz).prev)).prev)).cumx + cboxx;
+          (*((*smallestz).prev)).cumz = (*smallestz).cumz + cboxz;
         }
       }
       else
       {
-        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz )
+        if ( (*smallestz).cumz + cboxz == (*((*smallestz).prev)).cumz )
         {
-          (*((*smallestz).pre)).cumx = (*((*smallestz).pre)).cumx + cboxx;
-          boxlist[cboxi].cox = (*((*smallestz).pre)).cumx;
+          (*((*smallestz).prev)).cumx = (*((*smallestz).prev)).cumx + cboxx;
+          boxlist[cboxi].cox = (*((*smallestz).prev)).cumx;
         }
         else
         {
           boxlist[cboxi].cox = (*smallestz).cumx - cboxx;
-          (*((*smallestz).pos)).pre = malloc(sizeof(struct scrappad));
-          if ((*((*smallestz).pos)).pre == NULL)
+          (*((*smallestz).next)).prev = malloc(sizeof(struct scrappad));
+          if ((*((*smallestz).next)).prev == NULL)
           {
             printf("Insufficient memory available\n");
             return 1;
           }
-          (*((*((*smallestz).pos)).pre)).pos = (*smallestz).pos;
-          (*((*((*smallestz).pos)).pre)).pre = smallestz;
-          (*smallestz).pos = (*((*smallestz).pos)).pre;
-          (*((*smallestz).pos)).cumx = (*smallestz).cumx;
-          (*((*smallestz).pos)).cumz = (*smallestz).cumz + cboxz;
+          (*((*((*smallestz).next)).prev)).next = (*smallestz).next;
+          (*((*((*smallestz).next)).prev)).prev = smallestz;
+          (*smallestz).next = (*((*smallestz).next)).prev;
+          (*((*smallestz).next)).cumx = (*smallestz).cumx;
+          (*((*smallestz).next)).cumz = (*smallestz).cumz + cboxz;
           (*smallestz).cumx = (*smallestz).cumx - cboxx;
         }
       }
@@ -691,8 +691,8 @@ int pack_layer(void){
     {
       //*** SUBSITUATION-4B: SIDES ARE NOT EQUAL TO EACH OTHER ***
       
-      lenx = (*smallestz).cumx - (*((*smallestz).pre)).cumx;
-      lenz = (*((*smallestz).pre)).cumz - (*smallestz).cumz;
+      lenx = (*smallestz).cumx - (*((*smallestz).prev)).cumx;
+      lenz = (*((*smallestz).prev)).cumz - (*smallestz).cumz;
       lpz = remainpz - (*smallestz).cumz;
       find_box(lenx, layerthickness, remainpy, lenz, lpz);
       checkfound();
@@ -702,14 +702,14 @@ int pack_layer(void){
       
       boxlist[cboxi].coy = packedy;
       boxlist[cboxi].coz = (*smallestz).cumz;
-      boxlist[cboxi].cox = (*((*smallestz).pre)).cumx;
-      if ( cboxx == (*smallestz).cumx - (*((*smallestz).pre)).cumx )
+      boxlist[cboxi].cox = (*((*smallestz).prev)).cumx;
+      if ( cboxx == (*smallestz).cumx - (*((*smallestz).prev)).cumx )
       {
-        if ((*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz)
+        if ((*smallestz).cumz + cboxz == (*((*smallestz).prev)).cumz)
         {
-          (*((*smallestz).pre)).cumx = (*smallestz).cumx;
-          (*((*smallestz).pre)).pos = (*smallestz).pos;
-          (*((*smallestz).pos)).pre = (*smallestz).pre;
+          (*((*smallestz).prev)).cumx = (*smallestz).cumx;
+          (*((*smallestz).prev)).next = (*smallestz).next;
+          (*((*smallestz).next)).prev = (*smallestz).prev;
           free(smallestz);
         }
         else
@@ -719,28 +719,28 @@ int pack_layer(void){
       }
       else
       {
-        if ( (*smallestz).cumz + cboxz == (*((*smallestz).pre)).cumz )
+        if ( (*smallestz).cumz + cboxz == (*((*smallestz).prev)).cumz )
         {
-          (*((*smallestz).pre)).cumx = (*((*smallestz).pre)).cumx + cboxx;
+          (*((*smallestz).prev)).cumx = (*((*smallestz).prev)).cumx + cboxx;
         }
-        else if ( (*smallestz).cumz + cboxz == (*((*smallestz).pos)).cumz )
+        else if ( (*smallestz).cumz + cboxz == (*((*smallestz).next)).cumz )
         {
           boxlist[cboxi].cox = (*smallestz).cumx - cboxx;
           (*smallestz).cumx = (*smallestz).cumx - cboxx;
         }
         else
         {
-          (*((*smallestz).pre)).pos = malloc(sizeof(struct scrappad));
-          if ( (*((*smallestz).pre)).pos == NULL )
+          (*((*smallestz).prev)).next = malloc(sizeof(struct scrappad));
+          if ( (*((*smallestz).prev)).next == NULL )
           {
             printf("Insufficient memory available\n");
             return 1;
           }
-          (*((*((*smallestz).pre)).pos)).pre = (*smallestz).pre;
-          (*((*((*smallestz).pre)).pos)).pos = smallestz;
-          (*smallestz).pre = (*((*smallestz).pre)).pos;
-          (*((*smallestz).pre)).cumx = (*((*((*smallestz).pre)).pre)).cumx + cboxx;
-          (*((*smallestz).pre)).cumz = (*smallestz).cumz + cboxz;
+          (*((*((*smallestz).prev)).next)).prev = (*smallestz).prev;
+          (*((*((*smallestz).prev)).next)).next = smallestz;
+          (*smallestz).prev = (*((*smallestz).prev)).next;
+          (*((*smallestz).prev)).cumx = (*((*((*smallestz).prev)).prev)).cumx + cboxx;
+          (*((*smallestz).prev)).cumz = (*smallestz).cumz + cboxz;
         }
       }
       volume_check();
@@ -929,13 +929,13 @@ void find_smallest_z(void)
 {
   scrapmemb = scrapfirst;
   smallestz = scrapmemb;
-  while ( !((*scrapmemb).pos == NULL))
+  while ( !((*scrapmemb).next == NULL))
   {
-    if ( (*((*scrapmemb).pos)).cumz < (*smallestz).cumz )
+    if ( (*((*scrapmemb).next)).cumz < (*smallestz).cumz )
     {
-      smallestz = (*scrapmemb).pos;
+      smallestz = (*scrapmemb).next;
     }
-    scrapmemb = (*scrapmemb).pos;
+    scrapmemb = (*scrapmemb).next;
   }
   return;
 }
@@ -957,7 +957,7 @@ void checkfound(void)
   }
   else
   {
-    if ( (bboxi > 0) && (layerinlayer || (!(*smallestz).pre && !(*smallestz).pos)) )
+    if ( (bboxi > 0) && (layerinlayer || (!(*smallestz).prev && !(*smallestz).next)) )
     {
       if (!layerinlayer)
       {
@@ -973,51 +973,51 @@ void checkfound(void)
     }
     else
     {
-      if ( !(*smallestz).pre && !(*smallestz).pos )
+      if ( !(*smallestz).prev && !(*smallestz).next )
       {
         layerdone = 1;
       }
       else
       {
         evened = 1;
-        if (!(*smallestz).pre)
+        if (!(*smallestz).prev)
         {
-          trash = (*smallestz).pos;
-          (*smallestz).cumx = (*((*smallestz).pos)).cumx;
-          (*smallestz).cumz = (*((*smallestz).pos)).cumz;
-          (*smallestz).pos = (*((*smallestz).pos)).pos;
-          if ((*smallestz).pos)
+          trash = (*smallestz).next;
+          (*smallestz).cumx = (*((*smallestz).next)).cumx;
+          (*smallestz).cumz = (*((*smallestz).next)).cumz;
+          (*smallestz).next = (*((*smallestz).next)).next;
+          if ((*smallestz).next)
           {
-            smallestz=(*scrapmemb).pos;
+            smallestz=(*scrapmemb).next;
           }
           free(trash);
         }
-        else if (!(*smallestz).pos)
+        else if (!(*smallestz).next)
         {
-          (*((*smallestz).pre)).pos = NULL;
-          (*((*smallestz).pre)).cumx = (*smallestz).cumx;
+          (*((*smallestz).prev)).next = NULL;
+          (*((*smallestz).prev)).cumx = (*smallestz).cumx;
           free(smallestz);
         }
         else
         {
-          if ( (*((*smallestz).pre)).cumz == (*((*smallestz).pos)).cumz )
+          if ( (*((*smallestz).prev)).cumz == (*((*smallestz).next)).cumz )
           {
-            (*((*smallestz).pre)).pos = (*((*smallestz).pos)).pos;
-            if ((*((*smallestz).pos)).pos)
+            (*((*smallestz).prev)).next = (*((*smallestz).next)).next;
+            if ((*((*smallestz).next)).next)
             {
-              (*((*((*smallestz).pos)).pos)).pre = (*smallestz).pre;
+              (*((*((*smallestz).next)).next)).prev = (*smallestz).prev;
             }
-            (*((*smallestz).pre)).cumx = (*((*smallestz).pos)).cumx;
-            free((*smallestz).pos);
+            (*((*smallestz).prev)).cumx = (*((*smallestz).next)).cumx;
+            free((*smallestz).next);
             free(smallestz);
           }
           else
           {
-            (*((*smallestz).pre)).pos = (*smallestz).pos;
-            (*((*smallestz).pos)).pre = (*smallestz).pre;
-            if ((*((*smallestz).pre)).cumz < (*((*smallestz).pos)).cumz)
+            (*((*smallestz).prev)).next = (*smallestz).next;
+            (*((*smallestz).next)).prev = (*smallestz).prev;
+            if ((*((*smallestz).prev)).cumz < (*((*smallestz).next)).cumz)
             {
-              (*((*smallestz).pre)).cumx = (*smallestz).cumx;
+              (*((*smallestz).prev)).cumx = (*smallestz).cumx;
             }
             free(smallestz);
           }
