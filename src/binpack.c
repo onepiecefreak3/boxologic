@@ -206,6 +206,7 @@ void initialize(void)
 void read_boxlist_input(void)
 {
   short int n;
+  //TODO: Robustify this so the box label can be larger and have spaces
   char lbl[5], dim1[5], dim2[5], dim3[5], boxn[5], strxx[5], stryy[5], strzz[5];
   
   if ( (boxlist_input_file=fopen(filename,"r")) == NULL )
