@@ -14,12 +14,12 @@ This codebase is currently undergoing fairly sweeping changes. While we'll try o
 Usage
 -----
     USAGE:
-    	boxologic <option>
+      boxologic <option>
 
     OPTIONS:
-    	[ -f|--inputfile ] <boxlist text file>   : Perform bin packing analysis
-    	[ -v|--version ]                         : Print software version
-    	[ -h|--help ]                            : Print the help screen
+      [ -f|--inputfile ] <boxlist text file>   : Perform bin packing analysis
+      [ -v|--version ]                         : Print software version
+      [ -h|--help ]                            : Print the help screen
 
 Boxlist Format
 --------------
