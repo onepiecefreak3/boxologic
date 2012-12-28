@@ -19,20 +19,20 @@
 //----------------------------------------------------------------------------
 
 void initialize(void);
-void inputboxlist(void);
-void execiterations(void);
-void listcanditlayers(void);
-int complayerlist(const void *i, const void *j);
-int packlayer(void);
-int findlayer( short int thickness);
-void findbox(short int hmx, short int hy, short int hmy, short int hz, short int hmz);
-void analyzebox (short int hmx, short int hy, short int hmy, short int hz, short int hmz, short int dim1, short int dim2, short int dim3);
-void findsmallestz(void);
-void checkfound(void);
-void volumecheck (void);
-void graphunpackedout(void);
-void outputboxlist(void);
-void report(void);
+void read_boxlist_input(void);
+void execute_iterations(void); //TODO: Needs a better name yet
+void list_candidate_layers(void);
+int compute_layer_list(const void *i, const void *j);
+int pack_layer(void);
+int find_layer(short int thickness);
+void find_box(short int hmx, short int hy, short int hmy, short int hz, short int hmz);
+void analyze_box(short int hmx, short int hy, short int hmy, short int hz, short int hmz, short int dim1, short int dim2, short int dim3);
+void find_smallest_z(void);
+void checkfound(void); //TODO: Find better name for this
+void volume_check(void);
+void write_visualization_data_file(void);
+void write_boxlist_file(void);
+void report_results(void);
 void print_help(void);
 
 //----------------------------------------------------------------------------
@@ -164,9 +164,9 @@ int main(int argc, char *argv[])
   
   initialize();
   time(&start);
-  execiterations();
+  execute_iterations();
   time(&finish);
-  report();
+  report_results();
   return(0);
 }
 
@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
 
 void initialize(void)
 {
-  inputboxlist();
+  read_boxlist_input();
   temp = 1.0;
   totalvolume = temp * xx * yy * zz;
   totalboxvol = 0.0;
@@ -203,7 +203,7 @@ void initialize(void)
 // READS THE PALLET AND BOX SET DATA ENTERED BY THE USER FROM THE INPUT FILE
 //----------------------------------------------------------------------------
 
-void inputboxlist(void)
+void read_boxlist_input(void)
 {
   short int n;
   char lbl[5], dim1[5], dim2[5], dim3[5], boxn[5], strxx[5], stryy[5], strzz[5];
@@ -249,7 +249,7 @@ void inputboxlist(void)
 // ITERATIONS ARE DONE AND PARAMETERS OF THE BEST SOLUTION ARE FOUND
 //----------------------------------------------------------------------------
 
-void execiterations(void)
+void execute_iterations(void)
 {
   for (variant = 1; variant <= 6; variant++)
   {
@@ -275,9 +275,9 @@ void execiterations(void)
         break;
     }
     
-    listcanditlayers();
+    list_candidate_layers();
     layers[0].layereval = -1;
-    qsort(layers, layerlistlen+1, sizeof(struct layerlist), complayerlist);
+    qsort(layers, layerlistlen+1, sizeof(struct layerlist), compute_layer_list);
     
     for (layersindex = 1; layersindex <= layerlistlen; layersindex++)
     {
@@ -303,7 +303,7 @@ void execiterations(void)
       {
         layerinlayer = 0;
         layerdone = 0;
-        if (packlayer())
+        if (pack_layer())
         {
           exit(1);
         }
@@ -318,7 +318,7 @@ void execiterations(void)
           remainpz = lilz;
           layerthickness = layerinlayer;
           layerdone = 0;
-          if (packlayer())
+          if (pack_layer())
           {
             exit( 1);
           }
@@ -326,7 +326,7 @@ void execiterations(void)
           remainpy = preremainpy;
           remainpz = pz;
         }
-        findlayer(remainpy);
+        find_layer(remainpy);
       }
       while (packing);
       // END DO-WHILE
@@ -353,7 +353,7 @@ void execiterations(void)
 // LISTS ALL POSSIBLE LAYER HEIGHTS BY GIVING A WEIGHT VALUE TO EACH OF THEM.
 //----------------------------------------------------------------------------
 
-void listcanditlayers(void)
+void list_candidate_layers(void)
 {
   char same;
   short int exdim, dimdif, dimen2, dimen3, y, z, k;
@@ -423,7 +423,7 @@ void listcanditlayers(void)
 // REQUIRED FUNCTION FOR QSORT FUNCTION TO WORK
 //----------------------------------------------------------------------------
 
-int complayerlist(const void *i, const void *j)
+int compute_layer_list(const void *i, const void *j)
 {
   return *(long int*)i - *(long int*)j;
 }
@@ -432,7 +432,7 @@ int complayerlist(const void *i, const void *j)
 // PACKS THE BOXES FOUND AND ARRANGES ALL VARIABLES AND RECORDS PROPERLY
 //----------------------------------------------------------------------------
 
-int packlayer(void){
+int pack_layer(void){
   short int lenx, lenz, lpz;
   
   if (!layerthickness)
@@ -446,7 +446,7 @@ int packlayer(void){
   
   while (1)
   {
-    findsmallestz();
+    find_smallest_z();
     
     if (!(*smallestz).pre && !(*smallestz).pos)
     {
@@ -454,7 +454,7 @@ int packlayer(void){
       
       lenx = (*smallestz).cumx;
       lpz = remainpz - (*smallestz).cumz;
-      findbox(lenx, layerthickness, remainpy, lpz, lpz);
+      find_box(lenx, layerthickness, remainpy, lpz, lpz);
       checkfound();
       
       if (layerdone) break;
@@ -482,7 +482,7 @@ int packlayer(void){
         (*smallestz).cumx = cboxx;
         (*smallestz).cumz = (*smallestz).cumz + cboxz;
       }
-      volumecheck();
+      volume_check();
     }
     else if (!(*smallestz).pre)
     {
@@ -491,7 +491,7 @@ int packlayer(void){
       lenx = (*smallestz).cumx;
       lenz = (*((*smallestz).pos)).cumz - (*smallestz).cumz;
       lpz = remainpz - (*smallestz).cumz;
-      findbox(lenx, layerthickness, remainpy, lenz, lpz);
+      find_box(lenx, layerthickness, remainpy, lenz, lpz);
       checkfound();
       
       if (layerdone) break;
@@ -542,7 +542,7 @@ int packlayer(void){
           (*((*smallestz).pos)).cumz = (*smallestz).cumz + cboxz;
         }
       }
-      volumecheck();
+      volume_check();
     }
     else if (!(*smallestz).pos)
     {
@@ -551,7 +551,7 @@ int packlayer(void){
       lenx = (*smallestz).cumx - (*((*smallestz).pre)).cumx;
       lenz = (*((*smallestz).pre)).cumz - (*smallestz).cumz;
       lpz = remainpz - (* smallestz).cumz;
-      findbox(lenx, layerthickness, remainpy, lenz, lpz);
+      find_box(lenx, layerthickness, remainpy, lenz, lpz);
       checkfound();
       
       if (layerdone) break;
@@ -595,7 +595,7 @@ int packlayer(void){
           (*((*smallestz).pre)).cumz = (*smallestz).cumz + cboxz;
         }
       }
-      volumecheck();
+      volume_check();
     }
     else if ( (*((*smallestz).pre)).cumz == (*((*smallestz).pos)).cumz )
     {
@@ -607,7 +607,7 @@ int packlayer(void){
       lenz = (*((*smallestz).pre)).cumz - (*smallestz).cumz;
       lpz = remainpz - (*smallestz).cumz;
       
-      findbox(lenx, layerthickness, remainpy, lenz, lpz);
+      find_box(lenx, layerthickness, remainpy, lenz, lpz);
       checkfound();
       
       if (layerdone) break;
@@ -685,7 +685,7 @@ int packlayer(void){
           (*smallestz).cumx = (*smallestz).cumx - cboxx;
         }
       }
-      volumecheck();
+      volume_check();
     }
     else
     {
@@ -694,7 +694,7 @@ int packlayer(void){
       lenx = (*smallestz).cumx - (*((*smallestz).pre)).cumx;
       lenz = (*((*smallestz).pre)).cumz - (*smallestz).cumz;
       lpz = remainpz - (*smallestz).cumz;
-      findbox(lenx, layerthickness, remainpy, lenz, lpz);
+      find_box(lenx, layerthickness, remainpy, lenz, lpz);
       checkfound();
       
       if (layerdone) break;
@@ -743,7 +743,7 @@ int packlayer(void){
           (*((*smallestz).pre)).cumz = (*smallestz).cumz + cboxz;
         }
       }
-      volumecheck();
+      volume_check();
     }
   }
   return 0;
@@ -754,7 +754,7 @@ int packlayer(void){
 // REMAINING EMPTY SPACE AVAILABLE
 //----------------------------------------------------------------------------
 
-int findlayer(short int thickness)
+int find_layer(short int thickness)
 {
   short int exdim, dimdif, dimen2, dimen3, y, z;
   long int layereval, eval;
@@ -819,7 +819,7 @@ int findlayer(short int thickness)
 // EMPTY SPACE GIVEN, ADJACENT BOXES, AND PALLET LIMITS
 //----------------------------------------------------------------------------
 
-void findbox(short int hmx, short int hy, short int hmy, short int hz, short int hmz)
+void find_box(short int hmx, short int hy, short int hmy, short int hz, short int hmz)
 {
   short int y;
   bfx = 32767; bfy = 32767; bfz = 32767;
@@ -833,13 +833,13 @@ void findbox(short int hmx, short int hy, short int hmy, short int hz, short int
     }
     if (boxlist[x].is_packed) continue;
     if (x > tbn) return;
-    analyzebox(hmx, hy, hmy, hz, hmz, boxlist[x].dim1, boxlist[x].dim2, boxlist[x].dim3);
+    analyze_box(hmx, hy, hmy, hz, hmz, boxlist[x].dim1, boxlist[x].dim2, boxlist[x].dim3);
     if ( (boxlist[x].dim1 == boxlist[x].dim3) && (boxlist[x].dim3 == boxlist[x].dim2) ) continue;
-    analyzebox(hmx, hy, hmy, hz, hmz, boxlist[x].dim1, boxlist[x].dim3, boxlist[x].dim2);
-    analyzebox(hmx, hy, hmy, hz, hmz, boxlist[x].dim2, boxlist[x].dim1, boxlist[x].dim3);
-    analyzebox(hmx, hy, hmy, hz, hmz, boxlist[x].dim2, boxlist[x].dim3, boxlist[x].dim1);
-    analyzebox(hmx, hy, hmy, hz, hmz, boxlist[x].dim3, boxlist[x].dim1, boxlist[x].dim2);
-    analyzebox(hmx, hy, hmy, hz, hmz, boxlist[x].dim3, boxlist[x].dim2, boxlist[x].dim1);
+    analyze_box(hmx, hy, hmy, hz, hmz, boxlist[x].dim1, boxlist[x].dim3, boxlist[x].dim2);
+    analyze_box(hmx, hy, hmy, hz, hmz, boxlist[x].dim2, boxlist[x].dim1, boxlist[x].dim3);
+    analyze_box(hmx, hy, hmy, hz, hmz, boxlist[x].dim2, boxlist[x].dim3, boxlist[x].dim1);
+    analyze_box(hmx, hy, hmy, hz, hmz, boxlist[x].dim3, boxlist[x].dim1, boxlist[x].dim2);
+    analyze_box(hmx, hy, hmy, hz, hmz, boxlist[x].dim3, boxlist[x].dim2, boxlist[x].dim1);
   }
 }
 
@@ -848,7 +848,7 @@ void findbox(short int hmx, short int hy, short int hmy, short int hz, short int
 // GIVEN
 //----------------------------------------------------------------------------
 
-void analyzebox(short int hmx, short int hy, short int hmy, short int hz, short int hmz, short int dim1, short int dim2, short int dim3)
+void analyze_box(short int hmx, short int hy, short int hmy, short int hz, short int hmz, short int dim1, short int dim2, short int dim3)
 {
   if (dim1 <= hmx && dim2 <= hmy && dim3 <= hmz)
   {
@@ -925,7 +925,7 @@ void analyzebox(short int hmx, short int hy, short int hmy, short int hz, short 
 // FINDS THE FIRST TO BE PACKED GAP IN THE LAYER EDGE
 //----------------------------------------------------------------------------
 
-void findsmallestz(void)
+void find_smallest_z(void)
 {
   scrapmemb = scrapfirst;
   smallestz = scrapmemb;
@@ -1032,7 +1032,7 @@ void checkfound(void)
 // AFTER PACKING OF EACH BOX, 100% PACKING CONDITION IS CHECKED
 //----------------------------------------------------------------------------
 
-void volumecheck (void)
+void volume_check(void)
 {
   boxlist[cboxi].is_packed = TRUE;
   boxlist[cboxi].packx = cboxx;
@@ -1042,8 +1042,8 @@ void volumecheck (void)
   packednumbox++;
   if (packingbest)
   {
-    graphunpackedout();
-    outputboxlist();
+    write_visualization_data_file();
+    write_boxlist_file();
   }
   else if (packedvolume == totalvolume || packedvolume == totalboxvol)
   {
@@ -1058,7 +1058,7 @@ void volumecheck (void)
 // LIST OF UNPACKED BOXES IS MERGED TO THE END OF THE REPORT FILE
 //----------------------------------------------------------------------------
 
-void graphunpackedout(void)
+void write_visualization_data_file(void)
 {
   char n[5];
   if (!unpacked)
@@ -1092,7 +1092,7 @@ void graphunpackedout(void)
 // WRITES THEM TO THE REPORT FILE
 //----------------------------------------------------------------------------
 
-void outputboxlist(void)
+void write_boxlist_file(void)
 {
   char strx[5];
   char strpackst[5];
@@ -1181,7 +1181,7 @@ void outputboxlist(void)
 // CONSOLE AND TO A TEXT FILE
 //----------------------------------------------------------------------------
 
-void report(void)
+void report_results(void)
 {
   switch(bestvariant)
   {
@@ -1246,9 +1246,9 @@ void report(void)
   fprintf(ofp,"  NO: PACKSTA DIMEN-1  DMEN-2  DIMEN-3   COOR-X   COOR-Y   COOR-Z   PACKEDX  PACKEDY  PACKEDZ\n");
   fprintf(ofp,"---------------------------------------------------------------------------------------------\n");
   
-  listcanditlayers();
+  list_candidate_layers();
   layers[0].layereval= -1;
-  qsort(layers, layerlistlen + 1, sizeof(struct layerlist), complayerlist);
+  qsort(layers, layerlistlen + 1, sizeof(struct layerlist), compute_layer_list);
   packedvolume = 0.0;
   packedy = 0;
   packing = 1;
@@ -1265,7 +1265,7 @@ void report(void)
   {
     layerinlayer = 0;
     layerdone = 0;
-    packlayer();
+    pack_layer();
     packedy = packedy + layerthickness;
     remainpy = py - packedy;
     if (layerinlayer)
@@ -1277,12 +1277,12 @@ void report(void)
       remainpz = lilz;
       layerthickness = layerinlayer;
       layerdone = 0;
-      packlayer();
+      pack_layer();
       packedy = prepackedy;
       remainpy = preremainpy;
       remainpz = pz;
     }
-    findlayer(remainpy);
+    find_layer(remainpy);
   }
   while (packing);
   
@@ -1292,7 +1292,7 @@ void report(void)
   {
     if (!boxlist[cboxi].is_packed)
     {
-      graphunpackedout();
+      write_visualization_data_file();
     }
   }
   unpacked = 0;
