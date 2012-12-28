@@ -94,7 +94,7 @@ double percentagepackedbox;
 double elapsedtime;
 
 struct boxinfo {
-  char packst;
+  char is_packed;
   short int dim1, dim2, dim3, n, cox, coy, coz, packx, packy, packz;
   long int vol;
 } boxlist[5000];
@@ -295,7 +295,7 @@ void execiterations(void)
       packednumbox = 0;
       for (x = 1; x <= tbn; x++)
       {
-        boxlist[x].packst=0;
+        boxlist[x].is_packed = FALSE;
       }
       
       //BEGIN DO-WHILE
@@ -762,7 +762,7 @@ int findlayer(short int thickness)
   eval = 1000000;
   for (x=1; x <= tbn; x++)
   {
-    if (boxlist[x].packst) continue;
+    if (boxlist[x].is_packed) continue;
     for( y = 1; y <= 3; y++)
     {
       switch(y)
@@ -788,7 +788,7 @@ int findlayer(short int thickness)
       {
         for (z = 1; z <= tbn; z++)
         {
-          if ( !(x == z) && !(boxlist[z].packst))
+          if ( !(x == z) && !(boxlist[z].is_packed))
           {
             dimdif = abs(exdim - boxlist[z].dim1);
             if ( abs(exdim - boxlist[z].dim2) < dimdif )
@@ -829,9 +829,9 @@ void findbox(short int hmx, short int hy, short int hmy, short int hz, short int
   {
     for (x = y; x < x + boxlist[y].n - 1; x++)
     {
-      if (!boxlist[x].packst) break;
+      if (!boxlist[x].is_packed) break;
     }
-    if (boxlist[x].packst) continue;
+    if (boxlist[x].is_packed) continue;
     if (x > tbn) return;
     analyzebox(hmx, hy, hmy, hz, hmz, boxlist[x].dim1, boxlist[x].dim2, boxlist[x].dim3);
     if ( (boxlist[x].dim1 == boxlist[x].dim3) && (boxlist[x].dim3 == boxlist[x].dim2) ) continue;
@@ -1034,7 +1034,7 @@ void checkfound(void)
 
 void volumecheck (void)
 {
-  boxlist[cboxi].packst = 1;
+  boxlist[cboxi].is_packed = TRUE;
   boxlist[cboxi].packx = cboxx;
   boxlist[cboxi].packy = cboxy;
   boxlist[cboxi].packz = cboxz;
@@ -1155,7 +1155,7 @@ void outputboxlist(void)
   }
   
   sprintf(strx, "%d", cboxi);
-  sprintf(strpackst, "%d", boxlist[cboxi].packst);
+  sprintf(strpackst, "%d", boxlist[cboxi].is_packed);
   sprintf(strdim1, "%d", boxlist[cboxi].dim1);
   sprintf(strdim2, "%d", boxlist[cboxi].dim2);
   sprintf(strdim3, "%d", boxlist[cboxi].dim3);
@@ -1258,7 +1258,7 @@ void report(void)
   
   for (x = 1; x <= tbn; x++)
   {
-    boxlist[x].packst = 0;
+    boxlist[x].is_packed = FALSE;
   }
   
   do
@@ -1290,7 +1290,7 @@ void report(void)
   unpacked = 1;
   for (cboxi = 1; cboxi <= tbn; cboxi++)
   {
-    if (!boxlist[cboxi].packst)
+    if (!boxlist[cboxi].is_packed)
     {
       graphunpackedout();
     }
@@ -1301,7 +1301,7 @@ void report(void)
   printf("\n");
   for (n = 1; n <= tbn; n++)
   {
-    if (boxlist[n].packst)
+    if (boxlist[n].is_packed)
     {
       printf("%d %d %d %d %d %d %d %d %d %d\n", n, boxlist[n].dim1, boxlist[n].dim2, boxlist[n].dim3, boxlist[n].cox, boxlist[n].coy, boxlist[n].coz, boxlist[n].packx, boxlist[n].packy, boxlist[n].packz);
     }
