@@ -113,7 +113,7 @@ struct scrappad *scrapfirst, *scrapmemb, *smallestz, *trash;
 
 time_t start, finish;
 
-FILE *boxlist_input_file, *report_output_file, *gfp;
+FILE *boxlist_input_file, *report_output_file, *visualizer_file;
 
 char version[] = "0.01";
 
@@ -1080,7 +1080,7 @@ void write_visualization_data_file(void)
   }
   if (!unpacked)
   {
-    fprintf(gfp, "%5s%5s%5s%5s%5s%5s\n", strcox, strcoy, strcoz, strpackx, strpacky, strpackz);
+    fprintf(visualizer_file, "%5s%5s%5s%5s%5s%5s\n", strcox, strcoy, strcoz, strpackx, strpacky, strpackz);
   }
   else
   {
@@ -1206,7 +1206,7 @@ void report_results(void)
       break;
   }
   packingbest = 1;
-  if ( (gfp = fopen(graphout,"w")) == NULL )
+  if ( (visualizer_file = fopen(graphout,"w")) == NULL )
   {
     printf("Cannot open file %s\n", filename);
     exit(1);
@@ -1216,7 +1216,7 @@ void report_results(void)
   sprintf(strpy, "%d", py);
   sprintf(strpz, "%d", pz);
   
-  fprintf(gfp,"%5s%5s%5s\n", strpx, strpy, strpz);
+  fprintf(visualizer_file,"%5s%5s%5s\n", strpx, strpy, strpz);
   strcat(filename, ".out");
   
   if ( (report_output_file = fopen(filename,"w")) == NULL )
@@ -1298,7 +1298,7 @@ void report_results(void)
   }
   unpacked = 0;
   fclose(report_output_file);
-  fclose(gfp);
+  fclose(visualizer_file);
   printf("\n");
   for (n = 1; n <= tbn; n++)
   {
