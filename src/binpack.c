@@ -113,7 +113,7 @@ struct scrappad *scrapfirst, *scrapmemb, *smallestz, *trash;
 
 time_t start, finish;
 
-FILE *ifp, *ofp, *gfp;
+FILE *boxlist_input_file, *report_output_file, *gfp;
 
 char version[] = "0.01";
 
@@ -208,14 +208,14 @@ void read_boxlist_input(void)
   short int n;
   char lbl[5], dim1[5], dim2[5], dim3[5], boxn[5], strxx[5], stryy[5], strzz[5];
   
-  if ( (ifp=fopen(filename,"r")) == NULL )
+  if ( (boxlist_input_file=fopen(filename,"r")) == NULL )
   {
     printf("Cannot open file %s\n", filename);
     exit(1);
   }
   tbn = 1;
   
-  if ( fscanf(ifp,"%s %s %s",strxx, stryy, strzz) == EOF )
+  if ( fscanf(boxlist_input_file,"%s %s %s",strxx, stryy, strzz) == EOF )
   {
     exit(1);
   }
@@ -224,7 +224,7 @@ void read_boxlist_input(void)
   yy = atoi(stryy);
   zz = atoi(strzz);
   
-  while ( fscanf(ifp,"%s %s %s %s %s",lbl,dim1,dim2,dim3,boxn) != EOF )
+  while ( fscanf(boxlist_input_file,"%s %s %s %s %s",lbl,dim1,dim2,dim3,boxn) != EOF )
   {
     boxlist[tbn].dim1 = atoi(dim1);
     boxlist[tbn].dim2 = atoi(dim2);
@@ -241,7 +241,7 @@ void read_boxlist_input(void)
     tbn = tbn+atoi(boxn);
   }
   --tbn;
-  fclose(ifp);
+  fclose(boxlist_input_file);
   return;
 }
 
@@ -1083,7 +1083,7 @@ void write_visualization_data_file(void)
   }
   else
   {
-    fprintf(ofp,"%5s%5s%5s%5s\n", n, strpackx, strpacky, strpackz);
+    fprintf(report_output_file,"%5s%5s%5s%5s\n", n, strpackx, strpacky, strpackz);
   }
 }
 
@@ -1172,7 +1172,7 @@ void write_boxlist_file(void)
   boxlist[cboxi].packx = bx;
   boxlist[cboxi].packy = by;
   boxlist[cboxi].packz = bz;
-  fprintf(ofp, "%5s%5s%9s%9s%9s%9s%9s%9s%9s%9s%9s\n", strx, strpackst, strdim1, strdim2, strdim3, strcox, strcoy, strcoz, strpackx, strpacky, strpackz);
+  fprintf(report_output_file, "%5s%5s%9s%9s%9s%9s%9s%9s%9s%9s%9s\n", strx, strpackst, strdim1, strdim2, strdim3, strcox, strcoy, strcoz, strpackx, strpacky, strpackz);
   return;
 }
 
@@ -1218,7 +1218,7 @@ void report_results(void)
   fprintf(gfp,"%5s%5s%5s\n", strpx, strpy, strpz);
   strcat(filename, ".out");
   
-  if ( (ofp = fopen(filename,"w")) == NULL )
+  if ( (report_output_file = fopen(filename,"w")) == NULL )
   {
     printf("Cannot open output file %s\n", filename);
     exit(1);
@@ -1228,23 +1228,23 @@ void report_results(void)
   percentageused = bestvolume * 100 / totalvolume;
   elapsedtime = difftime( finish, start);
   
-  fprintf(ofp,"---------------------------------------------------------------------------------------------\n");
-  fprintf(ofp,"                                       *** REPORT ***\n");
-  fprintf(ofp,"---------------------------------------------------------------------------------------------\n");
-  fprintf(ofp,"ELAPSED TIME                                          : Almost %.0f sec\n", elapsedtime);
-  fprintf(ofp,"TOTAL NUMBER OF ITERATIONS DONE                       : %d\n", itenum);
-  fprintf(ofp,"BEST SOLUTION FOUND AT ITERATION                      : %d OF VARIANT: %d\n", bestite, bestvariant);
-  fprintf(ofp,"TOTAL NUMBER OF BOXES                                 : %d\n", tbn);
-  fprintf(ofp,"PACKED NUMBER OF BOXES                                : %d\n", bestpackednum);
-  fprintf(ofp,"TOTAL VOLUME OF ALL BOXES                             : %.0f\n", totalboxvol);
-  fprintf(ofp,"PALLET VOLUME                                         : %.0f\n", totalvolume);
-  fprintf(ofp,"BEST SOLUTION'S VOLUME UTILIZATION                    : %.0f OUT OF %.0f\n", bestvolume, totalvolume);
-  fprintf(ofp,"PERCENTAGE OF PALLET VOLUME USED                      : %.6f %%\n", percentageused);
-  fprintf(ofp,"PERCENTAGE OF PACKED BOXES (VOLUME)                   : %.6f %%\n", percentagepackedbox);
-  fprintf(ofp,"WHILE PALLET ORIENTATION                              : X=%d; Y=%d; Z= %d\n", px, py, pz);
-  fprintf(ofp,"---------------------------------------------------------------------------------------------\n");
-  fprintf(ofp,"  NO: PACKSTA DIMEN-1  DMEN-2  DIMEN-3   COOR-X   COOR-Y   COOR-Z   PACKEDX  PACKEDY  PACKEDZ\n");
-  fprintf(ofp,"---------------------------------------------------------------------------------------------\n");
+  fprintf(report_output_file,"---------------------------------------------------------------------------------------------\n");
+  fprintf(report_output_file,"                                       *** REPORT ***\n");
+  fprintf(report_output_file,"---------------------------------------------------------------------------------------------\n");
+  fprintf(report_output_file,"ELAPSED TIME                                          : Almost %.0f sec\n", elapsedtime);
+  fprintf(report_output_file,"TOTAL NUMBER OF ITERATIONS DONE                       : %d\n", itenum);
+  fprintf(report_output_file,"BEST SOLUTION FOUND AT ITERATION                      : %d OF VARIANT: %d\n", bestite, bestvariant);
+  fprintf(report_output_file,"TOTAL NUMBER OF BOXES                                 : %d\n", tbn);
+  fprintf(report_output_file,"PACKED NUMBER OF BOXES                                : %d\n", bestpackednum);
+  fprintf(report_output_file,"TOTAL VOLUME OF ALL BOXES                             : %.0f\n", totalboxvol);
+  fprintf(report_output_file,"PALLET VOLUME                                         : %.0f\n", totalvolume);
+  fprintf(report_output_file,"BEST SOLUTION'S VOLUME UTILIZATION                    : %.0f OUT OF %.0f\n", bestvolume, totalvolume);
+  fprintf(report_output_file,"PERCENTAGE OF PALLET VOLUME USED                      : %.6f %%\n", percentageused);
+  fprintf(report_output_file,"PERCENTAGE OF PACKED BOXES (VOLUME)                   : %.6f %%\n", percentagepackedbox);
+  fprintf(report_output_file,"WHILE PALLET ORIENTATION                              : X=%d; Y=%d; Z= %d\n", px, py, pz);
+  fprintf(report_output_file,"---------------------------------------------------------------------------------------------\n");
+  fprintf(report_output_file,"  NO: PACKSTA DIMEN-1  DMEN-2  DIMEN-3   COOR-X   COOR-Y   COOR-Z   PACKEDX  PACKEDY  PACKEDZ\n");
+  fprintf(report_output_file,"---------------------------------------------------------------------------------------------\n");
   
   list_candidate_layers();
   layers[0].layereval= -1;
@@ -1286,7 +1286,7 @@ void report_results(void)
   }
   while (packing);
   
-  fprintf(ofp,"\n\n *** LIST OF UNPACKED BOXES ***\n");
+  fprintf(report_output_file,"\n\n *** LIST OF UNPACKED BOXES ***\n");
   unpacked = 1;
   for (cboxi = 1; cboxi <= tbn; cboxi++)
   {
@@ -1296,7 +1296,7 @@ void report_results(void)
     }
   }
   unpacked = 0;
-  fclose(ofp);
+  fclose(report_output_file);
   fclose(gfp);
   printf("\n");
   for (n = 1; n <= tbn; n++)
