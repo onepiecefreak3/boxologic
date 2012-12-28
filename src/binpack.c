@@ -1,15 +1,15 @@
-//**********************
+//----------------------------------------------------------------------------
 // INCLUDED HEADER FILES
-//**********************
+//----------------------------------------------------------------------------
 
 #include <time.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
-//**********************
+//----------------------------------------------------------------------------
 // FUNCTION PROTOTYPES
-//**********************
+//----------------------------------------------------------------------------
 
 void initialize(void);
 void inputboxlist(void);
@@ -28,9 +28,9 @@ void outputboxlist(void);
 void report(void);
 void print_help(void);
 
-//********************************************************
+//----------------------------------------------------------------------------
 // VARIABLE, CONSTANT AND STRUCTURE DECLARATIONS
-//********************************************************
+//----------------------------------------------------------------------------
 
 char strpx[5], strpy[5], strpz[5];
 char strcox[5], strcoy[5], strcoz[5];
@@ -110,9 +110,9 @@ FILE *ifp, *ofp, *gfp;
 
 char version[] = "0.01";
 
-//********************************************************
+//----------------------------------------------------------------------------
 // MAIN PROGRAM
-//********************************************************
+//----------------------------------------------------------------------------
 
 int main(int argc, char *argv[])
 {
@@ -163,9 +163,9 @@ int main(int argc, char *argv[])
   return(0);
 }
 
-//********************************************************
+//----------------------------------------------------------------------------
 // PERFORMS INITIALIZATIONS
-//********************************************************
+//----------------------------------------------------------------------------
 
 void initialize(void)
 {
@@ -192,11 +192,9 @@ void initialize(void)
   itenum = 0;
 }
 
-
-//**********************************************************************
-// READS THE PALLET AND BOX SET DATA ENTERED BY THE USER FROM
-// THE INPUT FILE
-//**********************************************************************
+//----------------------------------------------------------------------------
+// READS THE PALLET AND BOX SET DATA ENTERED BY THE USER FROM THE INPUT FILE
+//----------------------------------------------------------------------------
 
 void inputboxlist(void)
 {
@@ -240,10 +238,9 @@ void inputboxlist(void)
   return;
 }
 
-//**********************************************************************
-// ITERATIONS ARE DONE AND PARAMETERS OF THE BEST SOLUTION ARE
-// FOUND
-//**********************************************************************
+//----------------------------------------------------------------------------
+// ITERATIONS ARE DONE AND PARAMETERS OF THE BEST SOLUTION ARE FOUND
+//----------------------------------------------------------------------------
 
 void execiterations(void)
 {
@@ -334,7 +331,7 @@ void execiterations(void)
         bestite = itelayer;
         bestpackednum = packednumbox;
       }
-      
+
       if (hundredpercent) break;
       percentageused = bestvolume * 100 / totalvolume;
       printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
@@ -345,10 +342,10 @@ void execiterations(void)
   }
 }
 
-//**********************************************************************
-// LISTS ALL POSSIBLE LAYER HEIGHTS BY GIVING A WEIGHT VALUE TO
-// EACH OF THEM.
-//**********************************************************************
+//----------------------------------------------------------------------------
+// LISTS ALL POSSIBLE LAYER HEIGHTS BY GIVING A WEIGHT VALUE TO EACH OF THEM.
+//----------------------------------------------------------------------------
+
 void listcanditlayers(void)
 {
   char same;
@@ -415,19 +412,18 @@ void listcanditlayers(void)
   return;
 }
 
-//**********************************************************************
+//----------------------------------------------------------------------------
 // REQUIRED FUNCTION FOR QSORT FUNCTION TO WORK
-//**********************************************************************
+//----------------------------------------------------------------------------
 
 int complayerlist(const void *i, const void *j)
 {
   return *(long int*)i - *(long int*)j;
 }
 
-//**********************************************************************
-// PACKS THE BOXES FOUND AND ARRANGES ALL VARIABLES AND
-// RECORDS PROPERLY
-//**********************************************************************
+//----------------------------------------------------------------------------
+// PACKS THE BOXES FOUND AND ARRANGES ALL VARIABLES AND RECORDS PROPERLY
+//----------------------------------------------------------------------------
 
 int packlayer(void){
   short int lenx, lenz, lpz;
@@ -746,10 +742,10 @@ int packlayer(void){
   return 0;
 }
 
-//**********************************************************************
-// FINDS THE MOST PROPER LAYER HIGHT BY LOOKING AT THE UNPACKED
-// BOXES AND THE REMAINING EMPTY SPACE AVAILABLE
-//**********************************************************************
+//----------------------------------------------------------------------------
+// FINDS THE MOST PROPER LAYER HIGHT BY LOOKING AT THE UNPACKED BOXES AND THE
+// REMAINING EMPTY SPACE AVAILABLE
+//----------------------------------------------------------------------------
 
 int findlayer(short int thickness)
 {
@@ -811,10 +807,10 @@ int findlayer(short int thickness)
   return 0;
 }
 
-//**********************************************************************
-// FINDS THE MOST PROPER BOXES BY LOOKING AT ALL SIX POSSIBLE
-// ORIENTATIONS, EMPTY SPACE GIVEN, ADJACENT BOXES, AND PALLET LIMITS
-//**********************************************************************
+//----------------------------------------------------------------------------
+// FINDS THE MOST PROPER BOXES BY LOOKING AT ALL SIX POSSIBLE ORIENTATIONS,
+// EMPTY SPACE GIVEN, ADJACENT BOXES, AND PALLET LIMITS
+//----------------------------------------------------------------------------
 
 void findbox(short int hmx, short int hy, short int hmy, short int hz, short int hmz)
 {
@@ -840,10 +836,10 @@ void findbox(short int hmx, short int hy, short int hmy, short int hz, short int
   }
 }
 
-//**********************************************************************
-// ANALYZES EACH UNPACKED BOX TO FIND THE BEST FITTING ONE TO
-// THE EMPTY SPACE GIVEN
-//**********************************************************************
+//----------------------------------------------------------------------------
+// ANALYZES EACH UNPACKED BOX TO FIND THE BEST FITTING ONE TO THE EMPTY SPACE
+// GIVEN
+//----------------------------------------------------------------------------
 
 void analyzebox(short int hmx, short int hy, short int hmy, short int hz, short int hmz, short int dim1, short int dim2, short int dim3)
 {
@@ -918,9 +914,10 @@ void analyzebox(short int hmx, short int hy, short int hmy, short int hz, short 
   }
 }
 
-//********************************************************
+//----------------------------------------------------------------------------
 // FINDS THE FIRST TO BE PACKED GAP IN THE LAYER EDGE
-//********************************************************
+//----------------------------------------------------------------------------
+
 void findsmallestz(void)
 {
   scrapmemb = scrapfirst;
@@ -936,10 +933,10 @@ void findsmallestz(void)
   return;
 }
 
-//************************************************************
-// AFTER FINDING EACH BOX, THE CANDIDATE BOXES AND THE
-// CONDITION OF THE LAYER ARE EXAMINED
-//************************************************************
+//----------------------------------------------------------------------------
+// AFTER FINDING EACH BOX, THE CANDIDATE BOXES AND THE CONDITION OF THE LAYER
+// ARE EXAMINED
+//----------------------------------------------------------------------------
 
 void checkfound(void)
 {
@@ -1024,9 +1021,9 @@ void checkfound(void)
   return;
 }
 
-//********************************************************************
+//----------------------------------------------------------------------------
 // AFTER PACKING OF EACH BOX, 100% PACKING CONDITION IS CHECKED
-//********************************************************************
+//----------------------------------------------------------------------------
 
 void volumecheck (void)
 {
@@ -1049,11 +1046,10 @@ void volumecheck (void)
   return;
 }
 
-//*********************************************************************
-// DATA FOR THE VISUALIZATION PROGRAM IS WRITTEN TO THE
-// "VISUDAT" FILE AND THE LIST OF UNPACKED BOXES IS
-// MERGED TO THE END OF THE REPORT FILE
-//*********************************************************************
+//----------------------------------------------------------------------------
+// DATA FOR THE VISUALIZATION PROGRAM IS WRITTEN TO THE "VISUDAT" FILE AND THE
+// LIST OF UNPACKED BOXES IS MERGED TO THE END OF THE REPORT FILE
+//----------------------------------------------------------------------------
 
 void graphunpackedout(void)
 {
@@ -1084,10 +1080,10 @@ void graphunpackedout(void)
   }
 }
 
-//*********************************************************************
-// TRANSFORMS THE FOUND COORDINATE SYSTEM TO THE ONE ENTERED
-// BY THE USER AND WRITES THEM TO THE REPORT FILE
-//*********************************************************************
+//----------------------------------------------------------------------------
+// TRANSFORMS THE FOUND COORDINATE SYSTEM TO THE ONE ENTERED BY THE USER AND
+// WRITES THEM TO THE REPORT FILE
+//----------------------------------------------------------------------------
 
 void outputboxlist(void)
 {
@@ -1173,11 +1169,10 @@ void outputboxlist(void)
   return;
 }
 
-
-//*******************************************************************
-// USING THE PARAMETERS FOUND, PACKS THE BEST SOLUTION FOUND
-// AND REPORS TO THE CONSOLE AND TO A TEXT FILE
-//*******************************************************************
+//----------------------------------------------------------------------------
+// USING THE PARAMETERS FOUND, PACKS THE BEST SOLUTION FOUND AND REPORS TO THE
+// CONSOLE AND TO A TEXT FILE
+//----------------------------------------------------------------------------
 
 void report(void)
 {
@@ -1317,6 +1312,10 @@ void report(void)
   printf("WHILE PALLET ORIENTATION           : X=%d; Y=%d; Z= %d\n\n\n", px, py, pz);
   printf("TO VISUALIZE THIS SOLUTION, PLEASE RUN 'VISUAL.EXE'\n");
 }
+
+//----------------------------------------------------------------------------
+// PRINT THE HELP SCREEN
+//----------------------------------------------------------------------------
 
 void print_help(void)
 {
