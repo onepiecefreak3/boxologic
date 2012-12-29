@@ -48,7 +48,7 @@ char packing;
 char layerdone;
 char evened;
 char variant;
-char bestvariant;
+char best_variant;
 char packingbest;
 char hundredpercent;
 char graphout[]="visudat";
@@ -60,16 +60,16 @@ short int cboxx, cboxy, cboxz, cboxi;
 short int bfx, bfy, bfz;
 short int bbfx, bbfy, bbfz;
 short int xx, yy, zz;
-short int px, py, pz;
+short int pallet_x, pallet_y, pallet_z;
 
-short int tbn;
+short int total_boxes;
 short int x;
 short int n;
 short int layerlistlen;
 short int layerinlayer;
 short int prelayer;
 short int lilz;
-short int itenum;
+short int number_of_iterations;
 short int hour;
 short int min;
 short int sec;
@@ -80,18 +80,18 @@ short int prepackedy;
 short int layerthickness;
 short int itelayer;
 short int preremainpy;
-short int bestite;
+short int best_iteration;
 short int packednumbox;
-short int bestpackednum;
+short int number_packed_boxes;
 
 double packedvolume;
-double bestvolume;
-double totalvolume;
-double totalboxvol;
+double best_solution_volume;
+double total_pallet_volume;
+double total_box_volume;
 double temp;
-double percentageused;
-double percentagepackedbox;
-double elapsedtime;
+double pallet_volume_used_percentage;
+double packed_box_percentage;
+double elapsed_time;
 
 struct boxinfo {
   char is_packed;
@@ -178,10 +178,10 @@ void initialize(void)
 {
   read_boxlist_input();
   temp = 1.0;
-  totalvolume = temp * xx * yy * zz;
-  totalboxvol = 0.0;
-  for (x=1; x <= tbn; x++) {
-    totalboxvol = totalboxvol + boxlist[x].vol;
+  total_pallet_volume = temp * xx * yy * zz;
+  total_box_volume = 0.0;
+  for (x=1; x <= total_boxes; x++) {
+    total_box_volume = total_box_volume + boxlist[x].vol;
   }
   
   scrapfirst = malloc(sizeof(struct scrappad));
@@ -193,10 +193,10 @@ void initialize(void)
 //  }
   (*scrapfirst).prev = NULL;
   (*scrapfirst).next = NULL;
-  bestvolume = 0.0;
+  best_solution_volume = 0.0;
   packingbest = 0;
   hundredpercent = 0;
-  itenum = 0;
+  number_of_iterations = 0;
 }
 
 //----------------------------------------------------------------------------
@@ -214,7 +214,7 @@ void read_boxlist_input(void)
     printf("Cannot open file %s\n", filename);
     exit(1);
   }
-  tbn = 1;
+  total_boxes = 1;
   
   if ( fscanf(boxlist_input_file,"%s %s %s",strxx, stryy, strzz) == EOF )
   {
@@ -227,21 +227,21 @@ void read_boxlist_input(void)
   
   while ( fscanf(boxlist_input_file,"%s %s %s %s %s",lbl,dim1,dim2,dim3,boxn) != EOF )
   {
-    boxlist[tbn].dim1 = atoi(dim1);
-    boxlist[tbn].dim2 = atoi(dim2);
-    boxlist[tbn].dim3 = atoi(dim3);
+    boxlist[total_boxes].dim1 = atoi(dim1);
+    boxlist[total_boxes].dim2 = atoi(dim2);
+    boxlist[total_boxes].dim3 = atoi(dim3);
     
-    boxlist[tbn].vol = boxlist[tbn].dim1 * boxlist[tbn].dim2 * boxlist[tbn].dim3;
+    boxlist[total_boxes].vol = boxlist[total_boxes].dim1 * boxlist[total_boxes].dim2 * boxlist[total_boxes].dim3;
     n = atoi(boxn);
-    boxlist[tbn].n = n;
+    boxlist[total_boxes].n = n;
     
     while (--n)
     {
-      boxlist[tbn+n] = boxlist[tbn];
+      boxlist[total_boxes+n] = boxlist[total_boxes];
     }
-    tbn = tbn+atoi(boxn);
+    total_boxes = total_boxes+atoi(boxn);
   }
-  --tbn;
+  --total_boxes;
   fclose(boxlist_input_file);
   return;
 }
@@ -257,22 +257,22 @@ void execute_iterations(void)
     switch(variant)
     {
       case 1:
-        px=xx; py=yy; pz=zz;
+        pallet_x=xx; pallet_y=yy; pallet_z=zz;
         break;
       case 2:
-        px=zz; py=yy; pz=xx;
+        pallet_x=zz; pallet_y=yy; pallet_z=xx;
         break;
       case 3:
-        px=zz; py=xx; pz=yy;
+        pallet_x=zz; pallet_y=xx; pallet_z=yy;
         break;
       case 4:
-        px=yy; py=xx; pz=zz;
+        pallet_x=yy; pallet_y=xx; pallet_z=zz;
         break;
       case 5:
-        px=xx; py=zz; pz=yy;
+        pallet_x=xx; pallet_y=zz; pallet_z=yy;
         break;
       case 6:
-        px=yy; py=zz; pz=xx;
+        pallet_x=yy; pallet_y=zz; pallet_z=xx;
         break;
     }
     
@@ -282,19 +282,19 @@ void execute_iterations(void)
     
     for (layersindex = 1; layersindex <= layerlistlen; layersindex++)
     {
-      ++itenum;
+      ++number_of_iterations;
       time(&finish);
-      elapsedtime = difftime(finish, start);
-      printf("VARIANT: %5d; ITERATION (TOTAL): %5d; BEST SO FAR: %.3f %%; TIME: %.0f", variant, itenum, percentageused, elapsedtime);
+      elapsed_time = difftime(finish, start);
+      printf("VARIANT: %5d; ITERATION (TOTAL): %5d; BEST SO FAR: %.3f %%; TIME: %.0f", variant, number_of_iterations, pallet_volume_used_percentage, elapsed_time);
       packedvolume = 0.0;
       packedy = 0;
       packing = 1;
       layerthickness = layers[layersindex].layerdim;
       itelayer = layersindex;
-      remainpy = py;
-      remainpz = pz;
+      remainpy = pallet_y;
+      remainpz = pallet_z;
       packednumbox = 0;
-      for (x = 1; x <= tbn; x++)
+      for (x = 1; x <= total_boxes; x++)
       {
         boxlist[x].is_packed = FALSE;
       }
@@ -309,7 +309,7 @@ void execute_iterations(void)
           exit(1);
         }
         packedy = packedy + layerthickness;
-        remainpy = py - packedy;
+        remainpy = pallet_y - packedy;
         if (layerinlayer)
         {
           prepackedy = packedy;
@@ -325,23 +325,23 @@ void execute_iterations(void)
           }
           packedy = prepackedy;
           remainpy = preremainpy;
-          remainpz = pz;
+          remainpz = pallet_z;
         }
         find_layer(remainpy);
       }
       while (packing);
       // END DO-WHILE
       
-      if (packedvolume > bestvolume)
+      if (packedvolume > best_solution_volume)
       {
-        bestvolume = packedvolume;
-        bestvariant = variant;
-        bestite = itelayer;
-        bestpackednum = packednumbox;
+        best_solution_volume = packedvolume;
+        best_variant = variant;
+        best_iteration = itelayer;
+        number_packed_boxes = packednumbox;
       }
 
       if (hundredpercent) break;
-      percentageused = bestvolume * 100 / totalvolume;
+      pallet_volume_used_percentage = best_solution_volume * 100 / total_pallet_volume;
       printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
       printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
     }
@@ -362,7 +362,7 @@ void list_candidate_layers(void)
   
   layerlistlen = 0;
   
-  for (x = 1; x <= tbn; x++)
+  for (x = 1; x <= total_boxes; x++)
   {
     for(y = 1; y <= 3; y++)
     {
@@ -384,7 +384,7 @@ void list_candidate_layers(void)
           dimen3 = boxlist[x].dim2;
           break;
       }
-      if ((exdim > py) || (((dimen2 > px) || (dimen3 > pz)) && ((dimen3 > px) || (dimen2 > pz)))) continue;
+      if ((exdim > pallet_y) || (((dimen2 > pallet_x) || (dimen3 > pallet_z)) && ((dimen3 > pallet_x) || (dimen2 > pallet_z)))) continue;
       same=0;
       
       for (k = 1; k <= layerlistlen; k++)
@@ -397,7 +397,7 @@ void list_candidate_layers(void)
       }
       if (same) continue;
       layereval=0;
-      for (z = 1; z <= tbn; z++)
+      for (z = 1; z <= total_boxes; z++)
       {
         if(!(x == z))
         {
@@ -442,7 +442,7 @@ int pack_layer(void){
     return 0;
   }
   
-  (*scrapfirst).cumx = px;
+  (*scrapfirst).cumx = pallet_x;
   (*scrapfirst).cumz = 0;
   
   while (1)
@@ -639,7 +639,7 @@ int pack_layer(void){
           (*smallestz).cumz = (*smallestz).cumz + cboxz;
         }
       }
-      else if ( (*((*smallestz).prev)).cumx < px - (*smallestz).cumx )
+      else if ( (*((*smallestz).prev)).cumx < pallet_x - (*smallestz).cumx )
       {
         if ( (*smallestz).cumz + cboxz == (*((*smallestz).prev)).cumz)
         {
@@ -761,7 +761,7 @@ int find_layer(short int thickness)
   long int layereval, eval;
   layerthickness = 0;
   eval = 1000000;
-  for (x=1; x <= tbn; x++)
+  for (x=1; x <= total_boxes; x++)
   {
     if (boxlist[x].is_packed) continue;
     for( y = 1; y <= 3; y++)
@@ -785,9 +785,9 @@ int find_layer(short int thickness)
           break;
       }
       layereval = 0;
-      if ( (exdim <= thickness) && (((dimen2 <= px) && (dimen3 <= pz)) || ((dimen3 <= px) && (dimen2 <= pz))) )
+      if ( (exdim <= thickness) && (((dimen2 <= pallet_x) && (dimen3 <= pallet_z)) || ((dimen3 <= pallet_x) && (dimen2 <= pallet_z))) )
       {
-        for (z = 1; z <= tbn; z++)
+        for (z = 1; z <= total_boxes; z++)
         {
           if ( !(x == z) && !(boxlist[z].is_packed))
           {
@@ -826,14 +826,14 @@ void find_box(short int hmx, short int hy, short int hmy, short int hz, short in
   bfx = 32767; bfy = 32767; bfz = 32767;
   bbfx = 32767; bbfy = 32767; bbfz = 32767;
   boxi = 0; bboxi = 0;
-  for (y = 1; y <= tbn; y = y + boxlist[y].n)
+  for (y = 1; y <= total_boxes; y = y + boxlist[y].n)
   {
     for (x = y; x < x + boxlist[y].n - 1; x++)
     {
       if (!boxlist[x].is_packed) break;
     }
     if (boxlist[x].is_packed) continue;
-    if (x > tbn) return;
+    if (x > total_boxes) return;
     analyze_box(hmx, hy, hmy, hz, hmz, boxlist[x].dim1, boxlist[x].dim2, boxlist[x].dim3);
     if ( (boxlist[x].dim1 == boxlist[x].dim3) && (boxlist[x].dim3 == boxlist[x].dim2) ) continue;
     analyze_box(hmx, hy, hmy, hz, hmz, boxlist[x].dim1, boxlist[x].dim3, boxlist[x].dim2);
@@ -1046,7 +1046,7 @@ void volume_check(void)
     write_visualization_data_file();
     write_boxlist_file();
   }
-  else if (packedvolume == totalvolume || packedvolume == totalboxvol)
+  else if (packedvolume == total_pallet_volume || packedvolume == total_box_volume)
   {
     packing = 0;
     hundredpercent = 1;
@@ -1103,7 +1103,7 @@ void write_boxlist_file(void)
   
   short int x, y, z, bx, by, bz;
   
-  switch(bestvariant)
+  switch(best_variant)
   {
     case 1:
       x = boxlist[cboxi].cox;
@@ -1184,25 +1184,25 @@ void write_boxlist_file(void)
 
 void report_results(void)
 {
-  switch(bestvariant)
+  switch(best_variant)
   {
     case 1:
-      px = xx; py = yy; pz = zz;
+      pallet_x = xx; pallet_y = yy; pallet_z = zz;
       break;
     case 2:
-      px = zz; py = yy; pz = xx;
+      pallet_x = zz; pallet_y = yy; pallet_z = xx;
       break;
     case 3:
-      px = zz; py = xx; pz = yy;
+      pallet_x = zz; pallet_y = xx; pallet_z = yy;
       break;
     case 4:
-      px=yy; py=xx; pz = zz;
+      pallet_x=yy; pallet_y=xx; pallet_z = zz;
       break;
     case 5:
-      px = xx; py = zz; pz = yy;
+      pallet_x = xx; pallet_y = zz; pallet_z = yy;
       break;
     case 6:
-      px = yy; py = zz; pz = xx;
+      pallet_x = yy; pallet_y = zz; pallet_z = xx;
       break;
   }
   packingbest = 1;
@@ -1212,9 +1212,9 @@ void report_results(void)
     exit(1);
   }
   
-  sprintf(strpx, "%d", px);
-  sprintf(strpy, "%d", py);
-  sprintf(strpz, "%d", pz);
+  sprintf(strpx, "%d", pallet_x);
+  sprintf(strpy, "%d", pallet_y);
+  sprintf(strpz, "%d", pallet_z);
   
   fprintf(visualizer_file,"%5s%5s%5s\n", strpx, strpy, strpz);
   strcat(filename, ".out");
@@ -1225,24 +1225,24 @@ void report_results(void)
     exit(1);
   }
   
-  percentagepackedbox = bestvolume * 100 / totalboxvol;
-  percentageused = bestvolume * 100 / totalvolume;
-  elapsedtime = difftime( finish, start);
+  packed_box_percentage = best_solution_volume * 100 / total_box_volume;
+  pallet_volume_used_percentage = best_solution_volume * 100 / total_pallet_volume;
+  elapsed_time = difftime( finish, start);
   
   fprintf(report_output_file,"---------------------------------------------------------------------------------------------\n");
   fprintf(report_output_file,"                                       *** REPORT ***\n");
   fprintf(report_output_file,"---------------------------------------------------------------------------------------------\n");
-  fprintf(report_output_file,"ELAPSED TIME                                          : Almost %.0f sec\n", elapsedtime);
-  fprintf(report_output_file,"TOTAL NUMBER OF ITERATIONS DONE                       : %d\n", itenum);
-  fprintf(report_output_file,"BEST SOLUTION FOUND AT ITERATION                      : %d OF VARIANT: %d\n", bestite, bestvariant);
-  fprintf(report_output_file,"TOTAL NUMBER OF BOXES                                 : %d\n", tbn);
-  fprintf(report_output_file,"PACKED NUMBER OF BOXES                                : %d\n", bestpackednum);
-  fprintf(report_output_file,"TOTAL VOLUME OF ALL BOXES                             : %.0f\n", totalboxvol);
-  fprintf(report_output_file,"PALLET VOLUME                                         : %.0f\n", totalvolume);
-  fprintf(report_output_file,"BEST SOLUTION'S VOLUME UTILIZATION                    : %.0f OUT OF %.0f\n", bestvolume, totalvolume);
-  fprintf(report_output_file,"PERCENTAGE OF PALLET VOLUME USED                      : %.6f %%\n", percentageused);
-  fprintf(report_output_file,"PERCENTAGE OF PACKED BOXES (VOLUME)                   : %.6f %%\n", percentagepackedbox);
-  fprintf(report_output_file,"WHILE PALLET ORIENTATION                              : X=%d; Y=%d; Z= %d\n", px, py, pz);
+  fprintf(report_output_file,"ELAPSED TIME                                          : Almost %.0f sec\n", elapsed_time);
+  fprintf(report_output_file,"TOTAL NUMBER OF ITERATIONS DONE                       : %d\n", number_of_iterations);
+  fprintf(report_output_file,"BEST SOLUTION FOUND AT ITERATION                      : %d OF VARIANT: %d\n", best_iteration, best_variant);
+  fprintf(report_output_file,"TOTAL NUMBER OF BOXES                                 : %d\n", total_boxes);
+  fprintf(report_output_file,"PACKED NUMBER OF BOXES                                : %d\n", number_packed_boxes);
+  fprintf(report_output_file,"TOTAL VOLUME OF ALL BOXES                             : %.0f\n", total_box_volume);
+  fprintf(report_output_file,"PALLET VOLUME                                         : %.0f\n", total_pallet_volume);
+  fprintf(report_output_file,"BEST SOLUTION'S VOLUME UTILIZATION                    : %.0f OUT OF %.0f\n", best_solution_volume, total_pallet_volume);
+  fprintf(report_output_file,"PERCENTAGE OF PALLET VOLUME USED                      : %.6f %%\n", pallet_volume_used_percentage);
+  fprintf(report_output_file,"PERCENTAGE OF PACKED BOXES (VOLUME)                   : %.6f %%\n", packed_box_percentage);
+  fprintf(report_output_file,"WHILE PALLET ORIENTATION                              : X=%d; Y=%d; Z= %d\n", pallet_x, pallet_y, pallet_z);
   fprintf(report_output_file,"---------------------------------------------------------------------------------------------\n");
   fprintf(report_output_file,"  NO: PACKSTA DIMEN-1  DMEN-2  DIMEN-3   COOR-X   COOR-Y   COOR-Z   PACKEDX  PACKEDY  PACKEDZ\n");
   fprintf(report_output_file,"---------------------------------------------------------------------------------------------\n");
@@ -1253,11 +1253,11 @@ void report_results(void)
   packedvolume = 0.0;
   packedy = 0;
   packing = 1;
-  layerthickness = layers[bestite].layerdim;
-  remainpy = py;
-  remainpz = pz;
+  layerthickness = layers[best_iteration].layerdim;
+  remainpy = pallet_y;
+  remainpz = pallet_z;
   
-  for (x = 1; x <= tbn; x++)
+  for (x = 1; x <= total_boxes; x++)
   {
     boxlist[x].is_packed = FALSE;
   }
@@ -1268,7 +1268,7 @@ void report_results(void)
     layerdone = 0;
     pack_layer();
     packedy = packedy + layerthickness;
-    remainpy = py - packedy;
+    remainpy = pallet_y - packedy;
     if (layerinlayer)
     {
       prepackedy = packedy;
@@ -1281,7 +1281,7 @@ void report_results(void)
       pack_layer();
       packedy = prepackedy;
       remainpy = preremainpy;
-      remainpz = pz;
+      remainpz = pallet_z;
     }
     find_layer(remainpy);
   }
@@ -1289,7 +1289,7 @@ void report_results(void)
   
   fprintf(report_output_file,"\n\n *** LIST OF UNPACKED BOXES ***\n");
   unpacked = 1;
-  for (cboxi = 1; cboxi <= tbn; cboxi++)
+  for (cboxi = 1; cboxi <= total_boxes; cboxi++)
   {
     if (!boxlist[cboxi].is_packed)
     {
@@ -1300,24 +1300,24 @@ void report_results(void)
   fclose(report_output_file);
   fclose(visualizer_file);
   printf("\n");
-  for (n = 1; n <= tbn; n++)
+  for (n = 1; n <= total_boxes; n++)
   {
     if (boxlist[n].is_packed)
     {
       printf("%d %d %d %d %d %d %d %d %d %d\n", n, boxlist[n].dim1, boxlist[n].dim2, boxlist[n].dim3, boxlist[n].cox, boxlist[n].coy, boxlist[n].coz, boxlist[n].packx, boxlist[n].packy, boxlist[n].packz);
     }
   }
-  printf("ELAPSED TIME                       : Almost %.0f sec\n", elapsedtime);
-  printf("TOTAL NUMBER OF ITERATIONS DONE    : %d\n", itenum);
-  printf("BEST SOLUTION FOUND AT             : ITERATION: %d OF VARIANT: %d\n", bestite, bestvariant);
-  printf("TOTAL NUMBER OF BOXES              : %d\n", tbn);
-  printf("PACKED NUMBER OF BOXES             : %d\n", bestpackednum);
-  printf("TOTAL VOLUME OF ALL BOXES          : %.0f\n", totalboxvol);
-  printf("PALLET VOLUME                      :%.0f\n",totalvolume);
-  printf("BEST SOLUTION'S VOLUME UTILIZATION :%.0f OUT OF %.0f\n", bestvolume, totalvolume);
-  printf("PERCENTAGE OF PALLET VOLUME USED   : %.6f %%\n", percentageused);
-  printf("PERCENTAGE OF PACKEDBOXES (VOLUME) :%.6f%%\n", percentagepackedbox);
-  printf("WHILE PALLET ORIENTATION           : X=%d; Y=%d; Z= %d\n\n\n", px, py, pz);
+  printf("ELAPSED TIME                       : Almost %.0f sec\n", elapsed_time);
+  printf("TOTAL NUMBER OF ITERATIONS DONE    : %d\n", number_of_iterations);
+  printf("BEST SOLUTION FOUND AT             : ITERATION: %d OF VARIANT: %d\n", best_iteration, best_variant);
+  printf("TOTAL NUMBER OF BOXES              : %d\n", total_boxes);
+  printf("PACKED NUMBER OF BOXES             : %d\n", number_packed_boxes);
+  printf("TOTAL VOLUME OF ALL BOXES          : %.0f\n", total_box_volume);
+  printf("PALLET VOLUME                      :%.0f\n",total_pallet_volume);
+  printf("BEST SOLUTION'S VOLUME UTILIZATION :%.0f OUT OF %.0f\n", best_solution_volume, total_pallet_volume);
+  printf("PERCENTAGE OF PALLET VOLUME USED   : %.6f %%\n", pallet_volume_used_percentage);
+  printf("PERCENTAGE OF PACKEDBOXES (VOLUME) :%.6f%%\n", packed_box_percentage);
+  printf("WHILE PALLET ORIENTATION           : X=%d; Y=%d; Z= %d\n\n\n", pallet_x, pallet_y, pallet_z);
   printf("TO VISUALIZE THIS SOLUTION, PLEASE RUN 'VISUAL.EXE'\n");
 }
 
