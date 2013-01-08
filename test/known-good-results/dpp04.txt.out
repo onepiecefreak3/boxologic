@@ -1,0 +1,38 @@
+---------------------------------------------------------------------------------------------
+                                       *** REPORT ***
+---------------------------------------------------------------------------------------------
+ELAPSED TIME                                          : Almost 0 sec
+TOTAL NUMBER OF ITERATIONS DONE                       : 54
+BEST SOLUTION FOUND AT ITERATION                      : 8 OF VARIANT: 3
+TOTAL NUMBER OF BOXES                                 : 18
+PACKED NUMBER OF BOXES                                : 14
+TOTAL VOLUME OF ALL BOXES                             : 838656
+PALLET VOLUME                                         : 838656
+BEST SOLUTION'S VOLUME UTILIZATION                    : 752640 OUT OF 838656
+PERCENTAGE OF PALLET VOLUME USED                      : 89.743590 %
+PERCENTAGE OF PACKED BOXES (VOLUME)                   : 89.743590 %
+WHILE PALLET ORIENTATION                              : X=84; Y=104; Z= 96
+---------------------------------------------------------------------------------------------
+  NO: PACKSTA DIMEN-1  DMEN-2  DIMEN-3   COOR-X   COOR-Y   COOR-Z   PACKEDX  PACKEDY  PACKEDZ
+---------------------------------------------------------------------------------------------
+    1    1       70       45       24        0        0        0       45       24       70
+   13    1       14       40       48        0        0       70       40       48       14
+    2    1       70       45       24        0       24        0       45       24       70
+    3    1       70       45       24        0       48        0       45       24       70
+   14    1       14       40       48        0       48       70       40       48       14
+    4    1       70       45       24        0       72        0       45       24       70
+    5    1       70       30       24       45        0        0       30       24       70
+    6    1       70       30       24       45       24        0       30       24       70
+    7    1       70       30       24       45       48        0       30       24       70
+    8    1       70       30       24       45       72        0       30       24       70
+    9    1       70       29       24       75        0        0       29       24       70
+   10    1       70       29       24       75       24        0       29       24       70
+   11    1       70       29       24       75       48        0       29       24       70
+   12    1       70       29       24       75       72        0       29       24       70
+
+
+ *** LIST OF UNPACKED BOXES ***
+   15   14   32   48
+   16   14   32   48
+   17   14   32   48
+   18   14   32   48
