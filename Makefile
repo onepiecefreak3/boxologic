@@ -11,4 +11,4 @@ debug:
 	gcc -g -o boxologic_debug src/binpack.c
 
 clean:
-	rm -f visudat doc/boxlist.txt.out boxologic boxologic_debug
+	rm -f visudat doc/boxlist.txt.out boxologic boxologic_debug test/*.out

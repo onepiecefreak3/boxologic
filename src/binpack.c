@@ -968,7 +968,7 @@ void checkfound(void)
       cboxi = bboxi;
       cboxx = bboxx;
       cboxy = bboxy;
-      cboxz =bboxz;
+      cboxz = bboxz;
       layerinlayer = layerinlayer + bboxy - layerthickness;
       layerthickness = bboxy;
     }
