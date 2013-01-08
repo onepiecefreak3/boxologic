@@ -190,8 +190,8 @@ void initialize(void)
     printf("Insufficient memory available\n");
     exit(1);
   }
-  (*scrapfirst).prev = NULL;
-  (*scrapfirst).next = NULL;
+  scrapfirst->prev = NULL;
+  scrapfirst->next = NULL;
   best_solution_volume = 0.0;
   packingbest = 0;
   hundredpercent = 0;
