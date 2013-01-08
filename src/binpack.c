@@ -185,12 +185,11 @@ void initialize(void)
   }
   
   scrapfirst = malloc(sizeof(struct scrappad));
-//  TODO: Ask Ryan about this piece of logic
-//  if ((*scrapfirst).next == NULL)
-//  {
-//    printf("Insufficient memory available\n");
-//    exit(1);
-//  }
+  if (scrapfirst == NULL)
+  {
+    printf("Insufficient memory available\n");
+    exit(1);
+  }
   (*scrapfirst).prev = NULL;
   (*scrapfirst).next = NULL;
   best_solution_volume = 0.0;
