@@ -11,4 +11,9 @@ debug:
 	gcc -g -o boxologic_debug src/binpack.c
 
 clean:
-	rm -f visudat doc/boxlist.txt.out boxologic boxologic_debug test/*.out
+	rm -f visudat doc/boxlist.txt.out boxologic boxologic_debug test/*.out A B
+
+.PHONY: test
+
+test:
+	sh test/run_all.sh
