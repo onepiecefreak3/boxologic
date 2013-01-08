@@ -989,7 +989,7 @@ void checkfound(void)
           (*smallestz).next = (*((*smallestz).next)).next;
           if ((*smallestz).next)
           {
-            smallestz=(*scrapmemb).next;
+            (*((*smallestz).next)).prev = smallestz;
           }
           free(trash);
         }
