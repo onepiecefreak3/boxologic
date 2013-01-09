@@ -123,7 +123,7 @@ char version[] = "0.01";
 
 int main(int argc, char *argv[])
 {
-  
+
   //Parse Command line options
   if (argc == 2 || argc == 3)
   {
@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
     print_help();
     exit(1);
   }
-  
+
   initialize();
   time(&start);
   execute_iterations();
@@ -183,7 +183,7 @@ void initialize(void)
   for (x=1; x <= total_boxes; x++) {
     total_box_volume = total_box_volume + boxlist[x].vol;
   }
-  
+
   scrapfirst = malloc(sizeof(struct scrappad));
   if (scrapfirst == NULL)
   {
@@ -207,33 +207,33 @@ void read_boxlist_input(void)
   short int n;
   //TODO: Robustify this so the box label can be larger and have spaces
   char lbl[5], dim1[5], dim2[5], dim3[5], boxn[5], strxx[5], stryy[5], strzz[5];
-  
+
   if ( (boxlist_input_file=fopen(filename,"r")) == NULL )
   {
     printf("Cannot open file %s\n", filename);
     exit(1);
   }
   total_boxes = 1;
-  
+
   if ( fscanf(boxlist_input_file,"%s %s %s",strxx, stryy, strzz) == EOF )
   {
     exit(1);
   }
-  
+
   xx = atoi(strxx);
   yy = atoi(stryy);
   zz = atoi(strzz);
-  
+
   while ( fscanf(boxlist_input_file,"%s %s %s %s %s",lbl,dim1,dim2,dim3,boxn) != EOF )
   {
     boxlist[total_boxes].dim1 = atoi(dim1);
     boxlist[total_boxes].dim2 = atoi(dim2);
     boxlist[total_boxes].dim3 = atoi(dim3);
-    
+
     boxlist[total_boxes].vol = boxlist[total_boxes].dim1 * boxlist[total_boxes].dim2 * boxlist[total_boxes].dim3;
     n = atoi(boxn);
     boxlist[total_boxes].n = n;
-    
+
     while (--n)
     {
       boxlist[total_boxes+n] = boxlist[total_boxes];
@@ -274,11 +274,11 @@ void execute_iterations(void)
         pallet_x=yy; pallet_y=zz; pallet_z=xx;
         break;
     }
-    
+
     list_candidate_layers();
     layers[0].layereval = -1;
     qsort(layers, layerlistlen+1, sizeof(struct layerlist), compute_layer_list);
-    
+
     for (layersindex = 1; layersindex <= layerlistlen; layersindex++)
     {
       ++number_of_iterations;
@@ -297,7 +297,7 @@ void execute_iterations(void)
       {
         boxlist[x].is_packed = FALSE;
       }
-      
+
       //BEGIN DO-WHILE
       do
       {
@@ -330,7 +330,7 @@ void execute_iterations(void)
       }
       while (packing);
       // END DO-WHILE
-      
+
       if (packedvolume > best_solution_volume)
       {
         best_solution_volume = packedvolume;
@@ -358,9 +358,9 @@ void list_candidate_layers(void)
   char same;
   short int exdim, dimdif, dimen2, dimen3, y, z, k;
   long int layereval;
-  
+
   layerlistlen = 0;
-  
+
   for (x = 1; x <= total_boxes; x++)
   {
     for(y = 1; y <= 3; y++)
@@ -385,7 +385,7 @@ void list_candidate_layers(void)
       }
       if ((exdim > pallet_y) || (((dimen2 > pallet_x) || (dimen3 > pallet_z)) && ((dimen3 > pallet_x) || (dimen2 > pallet_z)))) continue;
       same=0;
-      
+
       for (k = 1; k <= layerlistlen; k++)
       {
         if (exdim == layers[k].layerdim)
@@ -434,32 +434,32 @@ int compute_layer_list(const void *i, const void *j)
 
 int pack_layer(void){
   short int lenx, lenz, lpz;
-  
+
   if (!layerthickness)
   {
     packing=0;
     return 0;
   }
-  
+
   scrapfirst->cumx = pallet_x;
   scrapfirst->cumz = 0;
-  
+
   while (1)
   {
     find_smallest_z();
-    
+
     if (!smallestz->prev && !smallestz->next)
     {
       //*** SITUATION-1: NO BOXES ON THE RIGHT AND LEFT SIDES ***
-      
+
       lenx = smallestz->cumx;
       lpz = remainpz - smallestz->cumz;
       find_box(lenx, layerthickness, remainpy, lpz, lpz);
       checkfound();
-      
+
       if (layerdone) break;
       if (evened) continue;
-      
+
       boxlist[cboxi].cox = 0;
       boxlist[cboxi].coy = packedy;
       boxlist[cboxi].coz = smallestz->cumz;
@@ -487,16 +487,16 @@ int pack_layer(void){
     else if (!smallestz->prev)
     {
       //*** SITUATION-2: NO BOXES ON THE LEFT SIDE ***
-      
+
       lenx = smallestz->cumx;
       lenz = smallestz->next->cumz - smallestz->cumz;
       lpz = remainpz - smallestz->cumz;
       find_box(lenx, layerthickness, remainpy, lenz, lpz);
       checkfound();
-      
+
       if (layerdone) break;
       if (evened) continue;
-      
+
       boxlist[cboxi].coy = packedy;
       boxlist[cboxi].coz = smallestz->cumz;
       if (cboxx == smallestz->cumx)
@@ -547,20 +547,20 @@ int pack_layer(void){
     else if (!smallestz->next)
     {
       //*** SITUATION-3: NO BOXES ON THE RIGHT SIDE ***
-      
+
       lenx = smallestz->cumx - smallestz->prev->cumx;
       lenz = smallestz->prev->cumz - smallestz->cumz;
       lpz = remainpz - (* smallestz).cumz;
       find_box(lenx, layerthickness, remainpy, lenz, lpz);
       checkfound();
-      
+
       if (layerdone) break;
       if (evened) continue;
-      
+
       boxlist[cboxi].coy = packedy;
       boxlist[cboxi].coz = smallestz->cumz;
       boxlist[cboxi].cox = smallestz->prev->cumx;
-      
+
       if (cboxx == smallestz->cumx - smallestz->prev->cumx)
       {
         if ( smallestz->cumz + cboxz == smallestz->prev->cumz )
@@ -600,19 +600,19 @@ int pack_layer(void){
     else if ( smallestz->prev->cumz == smallestz->next->cumz )
     {
       //*** SITUATION-4: THERE ARE BOXES ON BOTH OF THE SIDES ***
-      
+
       //*** SUBSITUATION-4A: SIDES ARE EQUAL TO EACH OTHER ***
-      
+
       lenx = smallestz->cumx - smallestz->prev->cumx;
       lenz = smallestz->prev->cumz - smallestz->cumz;
       lpz = remainpz - smallestz->cumz;
-      
+
       find_box(lenx, layerthickness, remainpy, lenz, lpz);
       checkfound();
-      
+
       if (layerdone) break;
       if (evened) continue;
-      
+
       boxlist[cboxi].coy = packedy;
       boxlist[cboxi].coz = smallestz->cumz;
       if ( cboxx == smallestz->cumx - smallestz->prev->cumx )
@@ -690,16 +690,16 @@ int pack_layer(void){
     else
     {
       //*** SUBSITUATION-4B: SIDES ARE NOT EQUAL TO EACH OTHER ***
-      
+
       lenx = smallestz->cumx - smallestz->prev->cumx;
       lenz = smallestz->prev->cumz - smallestz->cumz;
       lpz = remainpz - smallestz->cumz;
       find_box(lenx, layerthickness, remainpy, lenz, lpz);
       checkfound();
-      
+
       if (layerdone) break;
       if (evened) continue;
-      
+
       boxlist[cboxi].coy = packedy;
       boxlist[cboxi].coz = smallestz->cumz;
       boxlist[cboxi].cox = smallestz->prev->cumx;
@@ -1099,9 +1099,9 @@ void write_boxlist_file(void)
   char strdim1[5], strdim2[5], strdim3[5];
   char strcox[5], strcoy[5], strcoz[5];
   char strpackx[5], strpacky[5], strpackz[5];
-  
+
   short int x, y, z, bx, by, bz;
-  
+
   switch(best_variant)
   {
     case 1:
@@ -1153,7 +1153,7 @@ void write_boxlist_file(void)
       bz = boxlist[cboxi].packy;
       break;
   }
-  
+
   sprintf(strx, "%d", cboxi);
   sprintf(strpackst, "%d", boxlist[cboxi].is_packed);
   sprintf(strdim1, "%d", boxlist[cboxi].dim1);
@@ -1165,7 +1165,7 @@ void write_boxlist_file(void)
   sprintf(strpackx, "%d", bx);
   sprintf(strpacky, "%d", by);
   sprintf(strpackz, "%d", bz);
-  
+
   boxlist[cboxi].cox = x;
   boxlist[cboxi].coy = y;
   boxlist[cboxi].coz = z;
@@ -1210,24 +1210,24 @@ void report_results(void)
     printf("Cannot open file %s\n", filename);
     exit(1);
   }
-  
+
   sprintf(strpx, "%d", pallet_x);
   sprintf(strpy, "%d", pallet_y);
   sprintf(strpz, "%d", pallet_z);
-  
+
   fprintf(visualizer_file,"%5s%5s%5s\n", strpx, strpy, strpz);
   strcat(filename, ".out");
-  
+
   if ( (report_output_file = fopen(filename,"w")) == NULL )
   {
     printf("Cannot open output file %s\n", filename);
     exit(1);
   }
-  
+
   packed_box_percentage = best_solution_volume * 100 / total_box_volume;
   pallet_volume_used_percentage = best_solution_volume * 100 / total_pallet_volume;
   elapsed_time = difftime( finish, start);
-  
+
   fprintf(report_output_file,"---------------------------------------------------------------------------------------------\n");
   fprintf(report_output_file,"                                       *** REPORT ***\n");
   fprintf(report_output_file,"---------------------------------------------------------------------------------------------\n");
@@ -1245,7 +1245,7 @@ void report_results(void)
   fprintf(report_output_file,"---------------------------------------------------------------------------------------------\n");
   fprintf(report_output_file,"  NO: PACKSTA DIMEN-1  DMEN-2  DIMEN-3   COOR-X   COOR-Y   COOR-Z   PACKEDX  PACKEDY  PACKEDZ\n");
   fprintf(report_output_file,"---------------------------------------------------------------------------------------------\n");
-  
+
   list_candidate_layers();
   layers[0].layereval= -1;
   qsort(layers, layerlistlen + 1, sizeof(struct layerlist), compute_layer_list);
@@ -1255,12 +1255,12 @@ void report_results(void)
   layerthickness = layers[best_iteration].layerdim;
   remainpy = pallet_y;
   remainpz = pallet_z;
-  
+
   for (x = 1; x <= total_boxes; x++)
   {
     boxlist[x].is_packed = FALSE;
   }
-  
+
   do
   {
     layerinlayer = 0;
@@ -1285,7 +1285,7 @@ void report_results(void)
     find_layer(remainpy);
   }
   while (packing);
-  
+
   fprintf(report_output_file,"\n\n *** LIST OF UNPACKED BOXES ***\n");
   unpacked = 1;
   for (cboxi = 1; cboxi <= total_boxes; cboxi++)
