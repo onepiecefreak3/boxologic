@@ -18,4 +18,4 @@ clean:
 .PHONY: test
 
 test: boxologic
-	sh test/run_all.sh
+	./test/run_all.sh

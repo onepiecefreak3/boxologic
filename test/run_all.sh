@@ -24,14 +24,14 @@ do
   ./boxologic -f $TEST_FILE > /dev/null && \
   grep -A$NUM_LINES_OF_CONTEXT "$START_FINGERPRINT" $TEST_FILE.out > A && \
   grep -A$NUM_LINES_OF_CONTEXT "$START_FINGERPRINT" $KNOWN_GOOD_FILE > B && \
-  diff A B > /dev/null 2>&1 || diff A B
+  diff A B > /dev/null 2>&1
 
   # Check the exit status of diff to tell us if the expected and test results
   # are identical, and thus if the test passed or not
   if [ $? -eq 0 ]; then
-    STATUS="\e[32msame\e[0m."
+    STATUS="\033[0;32msame\033[0m."
   else
-    STATUS="\e[35;1mdiff\e[0m!"
+    STATUS="\033[0;31mdiff\033[0m!"
   fi
   echo -e $STATUS
 
