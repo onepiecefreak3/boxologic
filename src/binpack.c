@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "binpack.h"
 
 //----------------------------------------------------------------------------
 // DEFINES
@@ -32,7 +33,7 @@ void checkfound(void); //TODO: Find better name for this
 void volume_check(void);
 void write_visualization_data_file(void);
 void write_boxlist_file(void);
-void report_results(void);
+void report_results(ctx *context);
 void print_help(void);
 
 //----------------------------------------------------------------------------
@@ -118,57 +119,211 @@ FILE *boxlist_input_file, *report_output_file, *visualizer_file;
 char version[] = "0.01";
 
 //----------------------------------------------------------------------------
+// FUNCTION EXPORTS
+//----------------------------------------------------------------------------
+
+#define DLL_EXPORT __declspec(dllexport)
+
+DLL_EXPORT ctx* create_context(char* input_file, char* output_file, int x, int y, int z) 
+{
+	ctx *context = (ctx*)malloc(sizeof(ctx));
+	context->input_file = (char*)malloc(strlen(input_file)* sizeof(char));
+	context->output_file = (char*)malloc(strlen(output_file)* sizeof(char));
+	context->container = (vector*)malloc(sizeof(vector));
+	context->boxes = (box*)malloc(sizeof(box));
+
+	strcpy(context->input_file, input_file);
+	strcpy(context->output_file, output_file);
+	context->container->x = x;
+	context->container->y = y;
+	context->container->z = z;
+	
+	return context;
+}
+
+DLL_EXPORT void add_item(ctx *context, int x, int y, int z, int count)
+{
+	printf("%d", sizeof(context->boxes) / sizeof(box));
+	
+	int arr_length = sizeof(context->boxes) / sizeof(box);
+	context->boxes = realloc(context->boxes, (arr_length + 1) * sizeof(box));
+	
+	(context->boxes + arr_length)->dimension->x = x;
+	(context->boxes + arr_length)->dimension->y = y;
+	(context->boxes + arr_length)->dimension->z = z;
+	(context->boxes + arr_length)->count = count;
+	
+		// allocate new item
+	// box *new_box = (box*)malloc(sizeof(box));
+	// new_box->dimension = (vector*)malloc(sizeof(vector));
+	// new_box->dimension->x = x;
+	// new_box->dimension->y = y;
+	// new_box->dimension->z = z;
+	// new_box->count = count;
+	
+	// printf("Add Item to array\n");
+	
+	// int arr_length = sizeof(context->boxes) / sizeof(box);
+	
+	// printf("Current array length is %d\n", arr_length);
+	
+	// // allocate new array
+	// box *new_array;
+	// new_array = (box*)malloc((arr_length + 1) * sizeof(box));
+	
+	// // copy array content
+	// for(int i=0; i<arr_length; i++){
+		// new_array[i] = context->boxes[i];
+	// }
+	
+	// // allocate new item
+	// box *new_box = (box*)malloc(sizeof(box));
+	// new_box->dimension = (vector*)malloc(sizeof(vector));
+	// new_box->dimension->x = x;
+	// new_box->dimension->y = y;
+	// new_box->dimension->z = z;
+	// new_box->count = count;
+	
+	// printf("New box dimension x is %d\n", new_box->dimension->x);
+	
+	// // set new item
+	// new_array[arr_length] = new_box[0];
+	
+	// for(int i=0; i<arr_length+1; i++){
+		// printf("Item %d:", i);
+		// printf("Dimension X = %d, Y = %d, Z = %d; Count %d\n", 
+		// (new_array + i)->dimension->x,
+		// (new_array + i)->dimension->y,
+		// (new_array + i)->dimension->z,
+		// (new_array + i)->count);
+	// }
+	
+	// // free old array
+	// free(context->boxes);
+	
+	// // allocate array on old position
+	// context->boxes = (box*)malloc((arr_length + 1) * sizeof(box));
+	
+	// // set new array
+	// for(int i=0; i<arr_length+1; i++){
+		// context->boxes[i] = new_array[i];
+	// }
+}
+
+DLL_EXPORT void print_items(ctx *context)
+{
+	int arr_length = sizeof(context->boxes) / sizeof(box);
+	
+	printf("%d", arr_length);
+	
+	for(int i=0; i<arr_length; i++){
+		printf("Item %d:", i);
+		printf("Dimension X = %d, Y = %d, Z = %d", 
+		(context->boxes + i)->dimension->x,
+		(context->boxes + i)->dimension->y,
+		(context->boxes + i)->dimension->z);
+	}
+}
+
+DLL_EXPORT void execute_packing(ctx *context)
+{
+	filename=context->input_file;
+	
+	initialize();
+    time(&start);
+    execute_iterations();
+    time(&finish);
+    report_results(context);
+}
+
+DLL_EXPORT void free_context(ctx *context) 
+{
+	free(context->input_file);
+	free(context->output_file);
+	free(context->container);
+	for(int i = 0; i < sizeof(*context->boxes) / sizeof(box); i++){
+		free((context->boxes + i)->dimension);
+	}
+	free(context->boxes);
+	free(context);
+}
+
+DLL_EXPORT char* get_input_file(ctx *context)
+{
+	return context->input_file;
+}
+
+DLL_EXPORT void set_input_file(ctx *context, char *input_file)
+{
+	free(context->input_file);
+	context->input_file = (char*)malloc(strlen(input_file)* sizeof(char));
+	strcpy(context->input_file, input_file);
+}
+
+DLL_EXPORT char* get_output_file(ctx *context)
+{
+	return context->output_file;
+}
+
+DLL_EXPORT void set_output_file(ctx *context, char *output_file)
+{
+	free(context->output_file);
+	context->output_file = (char*)malloc(strlen(output_file)* sizeof(char));
+	strcpy(context->output_file, output_file);
+}
+
+//----------------------------------------------------------------------------
 // MAIN PROGRAM
 //----------------------------------------------------------------------------
 
-int main(int argc, char *argv[])
-{
+// int main(int argc, char *argv[])
+// {
 
-  //Parse Command line options
-  if (argc == 2 || argc == 3)
-  {
-    if (strcmp(argv[1], "-f") == 0 || strcmp(argv[1], "--inputfile") == 0)
-    {
-      if (argc == 3)
-      {
-        filename = argv[2];
-      }
-      else
-      {
-        printf("A filename is required.\n\n");
-        print_help();
-        exit(1);
-      }
-    }
-    else if (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "--version") == 0)
-    {
-      printf("Boxologic version %s\n", version);
-      return(0);
-    }
-    else if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)
-    {
-      print_help();
-      return(0);
-    }
-    else
-    {
-      print_help();
-      exit(1);
-    }
-  }
-  else
-  {
-    print_help();
-    exit(1);
-  }
+  // //Parse Command line options
+  // if (argc == 2 || argc == 3)
+  // {
+    // if (strcmp(argv[1], "-f") == 0 || strcmp(argv[1], "--inputfile") == 0)
+    // {
+      // if (argc == 3)
+      // {
+        // filename = argv[2];
+      // }
+      // else
+      // {
+        // printf("A filename is required.\n\n");
+        // print_help();
+        // exit(1);
+      // }
+    // }
+    // else if (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "--version") == 0)
+    // {
+      // printf("Boxologic version %s\n", version);
+      // return(0);
+    // }
+    // else if (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0)
+    // {
+      // print_help();
+      // return(0);
+    // }
+    // else
+    // {
+      // print_help();
+      // exit(1);
+    // }
+  // }
+  // else
+  // {
+    // print_help();
+    // exit(1);
+  // }
 
-  initialize();
-  time(&start);
-  execute_iterations();
-  time(&finish);
-  report_results();
-  return(0);
-}
+  // initialize();
+  // time(&start);
+  // execute_iterations();
+  // time(&finish);
+  // report_results();
+  // return(0);
+// }
 
 //----------------------------------------------------------------------------
 // PERFORMS INITIALIZATIONS
@@ -1181,7 +1336,7 @@ void write_boxlist_file(void)
 // CONSOLE AND TO A TEXT FILE
 //----------------------------------------------------------------------------
 
-void report_results(void)
+void report_results(ctx *context)
 {
   switch(best_variant)
   {
@@ -1216,9 +1371,9 @@ void report_results(void)
   sprintf(strpz, "%d", pallet_z);
 
   fprintf(visualizer_file,"%5s%5s%5s\n", strpx, strpy, strpz);
-  strcat(filename, ".out");
+  //strcat(filename, ".out");
 
-  if ( (report_output_file = fopen(filename,"w")) == NULL )
+  if ( (report_output_file = fopen(context->output_file,"w")) == NULL )
   {
     printf("Cannot open output file %s\n", filename);
     exit(1);
